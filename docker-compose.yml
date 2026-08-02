@@ -1,0 +1,18 @@
+# Run the planner locally:  docker compose up --build   ->  http://localhost:8080
+#
+# The label library and the render cache live in a named volume, so rebuilding the
+# image never takes your labels with it.
+services:
+  cullenect-label-planner:
+    build: .
+    # Or skip the build and use the published image:
+    # image: ghcr.io/dwfinkelstein/cullenect-label-planner:latest
+    container_name: cullenect-label-planner
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - cullenect-data:/data
+
+volumes:
+  cullenect-data:

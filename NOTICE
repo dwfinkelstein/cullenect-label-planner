@@ -1,0 +1,24 @@
+Cullenect Label Planner
+Copyright (c) 2026 Dave Finkelstein — MIT (see LICENSE)
+
+This project is a companion tool for, and is NOT affiliated with or endorsed by,
+the Cullenect Labels project. It exists to make that label system easier to use.
+
+--------------------------------------------------------------------------------
+Bundled third-party work
+--------------------------------------------------------------------------------
+
+backend/scad/Cullenect.scad
+    Cullenect Labels — https://github.com/CullenJWebb/Cullenect-Labels
+    Copyright (c) 2024 Cullen J Webb
+    MIT License — full text in backend/scad/LICENSE.upstream
+    Vendored VERBATIM at upstream commit bd451b6f73ca6d556bd3904994cbb1b66cfd461e
+    (2026-07-21). It is never edited here; behaviour is changed only by the
+    parameters this app passes to it. All label and socket geometry, and the
+    Cullenect standard itself, are that project's work.
+
+    Contributors to the vendored file also include ndevenish and ostat.
+
+OpenSCAD (runtime dependency, downloaded when the container image is built)
+    https://www.openscad.org/ — GPL-2.0-or-later. Not linked into or distributed
+    with this source; the container invokes it as an external program.
