@@ -85,10 +85,12 @@ def check(label: Label) -> FitReport:
 
     sizes = _sizes_that_fit(label, width)
 
-    parts = [f"The content is {content:.0f}mm wide but the label is {width:.0f}mm"]
+    fixes = []
     if sizes:
-        parts.append(f"shrink the text to {sizes[0]:g}mm")
-    parts.append(f"or use a {suggested_u:g}U label ({suggested_u * 42 - 6:.0f}mm)")
+        fixes.append(f"shrink the text to {sizes[0]:g}mm")
+    fixes.append(f"use a {suggested_u:g}U label ({suggested_u * 42 - 6:.0f}mm)")
+    message = (f"The content is {content:.0f}mm wide but the label is {width:.0f}mm — "
+               + " or ".join(fixes) + ".")
 
     return FitReport(
         fits=False, label_width_mm=width, content_width_mm=content,
@@ -96,5 +98,5 @@ def check(label: Label) -> FitReport:
         suggested_width_u=suggested_u,
         suggested_text1_size=sizes[0] if sizes else None,
         suggested_text2_size=sizes[1] if sizes else None,
-        message=" — ".join(parts) + ".",
+        message=message,
     )

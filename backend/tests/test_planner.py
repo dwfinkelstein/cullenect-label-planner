@@ -292,3 +292,25 @@ def test_plate_merge_shares_geometry_per_distinct_label(tmp_path, monkeypatch):
     assert model.count("<object ") == 1, "identical labels must share one object"
     assert model.count("<item ") == 4, "one item transform per copy"
     assert "colorgroup" in model, "colour must survive the merge"
+
+
+@needs_openscad
+def test_concurrent_renders_of_the_same_label_do_not_collide(tmp_path, monkeypatch):
+    """The UI renders the same label twice at once — preview and fit check.
+
+    Writing straight to the cache path made those two clobber each other's output file,
+    and one would fail on a truncated or missing result. Rendering to a unique temp path
+    and renaming into place makes the race harmless.
+    """
+    import concurrent.futures
+
+    monkeypatch.setattr(scad, "CACHE_DIR", tmp_path)
+    label = Label(text1=TextBlock(text="RACE"), width_u=2.2)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+        results = [f.result() for f in
+                   [pool.submit(scad.render_label, label, "3mf") for _ in range(4)]]
+
+    assert len({str(r) for r in results}) == 1, "all four should agree on the cache entry"
+    assert results[0].stat().st_size > 0
+    assert not list(tmp_path.glob("*.tmp*")), "no temp files should be left behind"
