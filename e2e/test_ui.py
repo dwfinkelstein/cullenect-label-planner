@@ -155,3 +155,34 @@ def test_the_plate_preview_reports_progress_and_completes(browser):
         assert not page.errors, f"console errors: {page.errors[:2]}"
     finally:
         page.close()
+
+
+def test_tags_can_be_added_and_used_to_filter(browser):
+    """Tags were stored and searched but there was no way to set one."""
+    page = open_app(browser, 1500, 950)
+    try:
+        page.get_by_role("button", name="+ New label").click()
+        dialog = page.get_by_role("dialog", name="New label")
+        dialog.locator("#nl-t1").fill("E2E tagged")
+        tags = dialog.locator("#tag-input")
+        tags.scroll_into_view_if_needed()
+        tags.fill("e2e-group")
+        tags.press("Enter")
+        dialog.get_by_role("button", name="Add label").click()
+        page.wait_for_timeout(2000)
+
+        created = [l for l in page.request.get(f"{BASE}/api/labels").json()
+                   if l["text1"]["text"] == "E2E tagged"]
+        assert created and created[-1]["tags"] == ["e2e-group"], "the tag must persist"
+
+        # Filtering to the tag narrows the list to just that label.
+        page.reload(wait_until="networkidle")
+        page.wait_for_timeout(2500)
+        page.get_by_role("button", name="e2e-group", exact=True).first.click()
+        page.wait_for_timeout(600)
+        rows = page.locator("ul li").count()
+        assert rows == 1, f"filtering by tag should leave 1 row, saw {rows}"
+
+        page.request.delete(f"{BASE}/api/labels/{created[-1]['id']}")
+    finally:
+        page.close()
