@@ -1,4 +1,4 @@
-import type { Label, Meta, PlateEstimate } from './types'
+import type { Label, Meta, PlateEstimate, PlateSettings } from './types'
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error((await res.text().catch(() => '')) || `HTTP ${res.status}`)
@@ -7,6 +7,13 @@ async function json<T>(res: Response): Promise<T> {
 
 export const api = {
   meta: () => fetch('/api/meta').then(json<Meta>),
+  settings: () => fetch('/api/settings').then(json<PlateSettings>),
+  saveSettings: (s: PlateSettings) =>
+    fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(s),
+    }).then(json<PlateSettings>),
   health: () => fetch('/api/health').then(json<{ openscad: string; color_3mf: boolean }>),
 
   list: () => fetch('/api/labels').then(json<Label[]>),

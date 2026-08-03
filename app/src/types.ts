@@ -50,6 +50,14 @@ export interface Meta {
   fonts_missing: string[]
 }
 
+/** Printer properties, stored server-side — see backend/app/settings.py for why they
+ *  live apart from the label library. */
+export interface PlateSettings {
+  plate_x: number
+  plate_y: number
+  gap: number
+}
+
 export interface PlatePlacement {
   label_id: string
   title: string
