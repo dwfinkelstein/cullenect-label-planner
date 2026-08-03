@@ -5,7 +5,7 @@ import { LabelDialog } from './components/LabelDialog'
 import { LabelList } from './components/LabelList'
 import { PlatePreview } from './components/PlatePreview'
 import { Preview } from './components/Preview'
-import type { Label, Meta, PlateEstimate } from './types'
+import type { Label, Meta, PlateEstimate, PlateSettings } from './types'
 import { emptyLabel, labelTitle } from './types'
 
 const btn = 'rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 hover:border-slate-500 hover:text-white disabled:opacity-40'
@@ -19,13 +19,14 @@ export default function App() {
   const [editing, setEditing] = useState<Label | null>(null)
   const [platePreview, setPlatePreview] = useState(false)
   const [checked, setChecked] = useState<Set<string>>(new Set())
-  const [plate, setPlate] = useState({ plate_x: 250, plate_y: 250, gap: 3 })
+  const [plate, setPlate] = useState<PlateSettings>({ plate_x: 250, plate_y: 250, gap: 3 })
   const [estimate, setEstimate] = useState<PlateEstimate | null>(null)
   const [busy, setBusy] = useState('')
   const [toast, setToast] = useState('')
   const [newOpen, setNewOpen] = useState(false)
   const [bulkOpen, setBulkOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const settingsLoaded = useRef(false)
 
   const selected = useMemo(() => labels.find((l) => l.id === selectedId) ?? null,
                            [labels, selectedId])
@@ -44,7 +45,17 @@ export default function App() {
     refresh(true).catch((e) => flash(`Could not load the library: ${e.message}`))
     api.meta().then(setMeta).catch(() => {})
     api.health().then(setHealth).catch(() => {})
+    // Plate size is a property of your printer, so it shouldn't be re-entered every visit.
+    api.settings().then((s) => { setPlate(s); settingsLoaded.current = true })
+      .catch(() => { settingsLoaded.current = true })
   }, [refresh])
+
+  // Persist plate settings after they settle, so typing a bed size isn't 3 writes per digit.
+  useEffect(() => {
+    if (!settingsLoaded.current) return      // don't save the defaults over the stored ones
+    const timer = setTimeout(() => { api.saveSettings(plate).catch(() => {}) }, 800)
+    return () => clearTimeout(timer)
+  }, [plate])
 
   // Plate estimate follows the checked set + plate settings.
   useEffect(() => {

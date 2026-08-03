@@ -248,3 +248,33 @@ def test_the_renderer_is_pinned_to_an_exact_build():
     line = next(l for l in dockerfile.splitlines() if "OPENSCAD_APPIMAGE" in l and "http" in l)
     assert "snapshots/OpenSCAD-20" in line and ".AppImage" in line
     assert "latest" not in line.lower(), "the renderer must not float"
+
+
+# --- printer settings -------------------------------------------------------------------
+
+def test_plate_settings_persist(tmp_path, monkeypatch):
+    """Plate size is a property of the printer — re-entering it every visit is the bug."""
+    from app import settings as settings_store
+    monkeypatch.setattr(settings_store, "SETTINGS_PATH", tmp_path / "settings.json")
+
+    assert client.get("/api/settings").json() == {"plate_x": 250, "plate_y": 250, "gap": 3}
+    saved = client.put("/api/settings",
+                       json={"plate_x": 256, "plate_y": 256, "gap": 2.5}).json()
+    assert saved["plate_x"] == 256
+    assert client.get("/api/settings").json()["plate_y"] == 256, "must survive a fresh read"
+
+
+def test_bad_plate_settings_are_rejected():
+    assert client.put("/api/settings", json={"plate_x": 0, "plate_y": 250,
+                                             "gap": 3}).status_code == 422
+    assert client.put("/api/settings", json={"plate_x": 250, "plate_y": 250,
+                                             "gap": -1}).status_code == 422
+
+
+def test_unreadable_settings_fall_back_to_defaults(tmp_path, monkeypatch):
+    """A corrupt settings file must not stop the app from starting."""
+    from app import settings as settings_store
+    bad = tmp_path / "settings.json"
+    bad.write_text("{ not json")
+    monkeypatch.setattr(settings_store, "SETTINGS_PATH", bad)
+    assert settings_store.load().plate_x == 250
