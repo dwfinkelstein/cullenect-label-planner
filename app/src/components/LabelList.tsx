@@ -60,8 +60,20 @@ export function LabelList(props: Props) {
                   onChange={() => props.onToggle(l.id)}
                   title="Include on the build plate"
                 />
-                <button className="min-w-0 flex-1 text-left" onClick={() => props.onSelect(l.id)}
+                <button className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                        onClick={() => props.onSelect(l.id)}
                         onDoubleClick={() => props.onOpen(l.id)} title="Click to preview · double-click to edit">
+                  {/* The drawing is the label's own geometry — the names alone ('tnut_1',
+                      'crimp_receptacle_open') are exactly what the icon pickers exist to
+                      avoid making you read. Lazy so a large library doesn't fetch every
+                      thumbnail at once; the v= key refetches when the label changes. */}
+                  <img
+                    src={`/api/labels/${l.id}/thumbnail.svg?v=${encodeURIComponent(l.updated_at ?? '')}`}
+                    alt=""
+                    loading="lazy"
+                    className="hidden h-6 w-16 shrink-0 rounded-sm object-contain sm:block"
+                  />
+                  <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     <span className="truncate text-sm text-slate-100">{labelTitle(l)}</span>
                     {dirtyId === l.id && <span className="text-[10px] text-amber-400" title="Unsaved changes">●</span>}
@@ -70,6 +82,7 @@ export function LabelList(props: Props) {
                     {l.width_u}U · {labelWidthMm(l).toFixed(0)}mm · {l.surface}
                     {l.fastener.show ? ` · ${l.fastener.head}/${l.fastener.driver}` : ''}
                     {l.hardware !== 'none' ? ` · ${l.hardware.replace(/_/g, ' ')}` : ''}
+                  </div>
                   </div>
                 </button>
                 <input

@@ -248,3 +248,33 @@ def test_the_renderer_is_pinned_to_an_exact_build():
     line = next(l for l in dockerfile.splitlines() if "OPENSCAD_APPIMAGE" in l and "http" in l)
     assert "snapshots/OpenSCAD-20" in line and ".AppImage" in line
     assert "latest" not in line.lower(), "the renderer must not float"
+
+
+# --- label thumbnails -------------------------------------------------------------------
+
+@needs_openscad
+def test_a_label_thumbnail_draws_the_real_text():
+    """The drawing must come from the label's geometry, not a browser approximation."""
+    created = client.post("/api/labels", json={"name": "thumb",
+                                               "text1": {"text": "M3 x 12"}}).json()
+    r = client.get(f"/api/labels/{created['id']}/thumbnail.svg")
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("image/svg+xml")
+    svg = r.text
+    assert svg.startswith("<svg") and "<rect" in svg, "the label body should be drawn"
+    assert "<path" in svg, "the text/icon relief should be drawn"
+    # Outlines, not raw triangles: a letter is hundreds of triangles and keeping them made
+    # thumbnails ~250KB each, which is unusable for a list.
+    assert len(svg) < 120_000, f"thumbnail is {len(svg)}b — too heavy for a list"
+
+
+@needs_openscad
+def test_thumbnails_differ_when_the_label_does():
+    a = client.post("/api/labels", json={"name": "a", "text1": {"text": "AAA"}}).json()
+    b = client.post("/api/labels", json={"name": "b", "text1": {"text": "BBB"}}).json()
+    assert client.get(f"/api/labels/{a['id']}/thumbnail.svg").text != \
+           client.get(f"/api/labels/{b['id']}/thumbnail.svg").text
+
+
+def test_a_thumbnail_for_an_unknown_label_is_404():
+    assert client.get("/api/labels/nope/thumbnail.svg").status_code == 404
