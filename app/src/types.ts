@@ -58,6 +58,17 @@ export interface PlateSettings {
   gap: number
 }
 
+export interface FitReport {
+  fits: boolean
+  label_width_mm: number
+  content_width_mm: number
+  overflow_mm: number
+  suggested_width_u: number | null
+  suggested_text1_size: number | null
+  suggested_text2_size: number | null
+  message: string
+}
+
 export interface PlatePlacement {
   label_id: string
   title: string

@@ -62,6 +62,8 @@ def _render_svg(source: str, key: str) -> Path:
     if out.exists() and out.stat().st_size > 0:
         return out
 
+    # Rendered into a private temp dir and copied in at the end, so concurrent requests
+    # for the same icon can't collide over the cache file (see scad.render).
     tmpdir = Path(tempfile.mkdtemp(prefix="icon-"))
     scad_path = tmpdir / "icon.scad"
     scad_path.write_text(source)

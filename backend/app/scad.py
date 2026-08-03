@@ -15,6 +15,7 @@ import logging
 import os
 import subprocess
 import tempfile
+import uuid
 from pathlib import Path
 
 from .models import Label
@@ -104,7 +105,13 @@ def render(defines: dict[str, object], fmt: str = "3mf") -> Path:
     if out.exists() and out.stat().st_size > 0:
         return out
 
-    cmd = [OPENSCAD, "--backend", "Manifold", "-o", str(out)]
+    # Render to a UNIQUE temp path and rename into place. Writing straight to the cache
+    # path let two concurrent renders of the same label collide over one file — which the
+    # UI does routinely, since the preview and the fit check render the same label at the
+    # same moment. One would see a truncated or missing file and fail. The rename is
+    # atomic, so the loser of the race simply replaces an identical file.
+    tmp_out = out.with_name(f"{out.stem}.{os.getpid()}.{uuid.uuid4().hex[:8]}.tmp{out.suffix}")
+    cmd = [OPENSCAD, "--backend", "Manifold", "-o", str(tmp_out)]
     if fmt == "3mf":
         cmd += [
             "-O", "export-3mf/color-mode=model",
@@ -132,11 +139,12 @@ def render(defines: dict[str, object], fmt: str = "3mf") -> Path:
             "OpenSCAD 2025 or newer — older builds cannot export coloured 3MF."
         ) from exc
 
-    if proc.returncode != 0 or not out.exists() or out.stat().st_size == 0:
-        out.unlink(missing_ok=True)
+    if proc.returncode != 0 or not tmp_out.exists() or tmp_out.stat().st_size == 0:
+        tmp_out.unlink(missing_ok=True)
         detail = (proc.stderr or proc.stdout or "").strip().splitlines()[-6:]
         raise RenderError("OpenSCAD failed: " + " | ".join(detail))
 
+    os.replace(tmp_out, out)
     log.info("rendered %s (%d bytes)", out.name, out.stat().st_size)
     return out
 
@@ -152,6 +160,23 @@ def render_accessory(kind: str, width_u: float = 1, fmt: str = "3mf") -> Path:
         {"Select_Output": ACCESSORIES[kind], "label_width": width_u, "backward_compatible": True},
         fmt,
     )
+
+
+def mesh_bounds(path: Path) -> tuple[float, float, float, float]:
+    """(min_x, max_x, min_y, max_y) of a rendered 3MF, in mm."""
+    import xml.etree.ElementTree as ET
+    import zipfile
+
+    core = "http://schemas.microsoft.com/3dmanufacturing/core/2015/02"
+    with zipfile.ZipFile(path) as zf:
+        root = ET.fromstring(zf.read("3D/3dmodel.model"))
+    xs, ys = [], []
+    for v in root.iter(f"{{{core}}}vertex"):
+        xs.append(float(v.get("x")))
+        ys.append(float(v.get("y")))
+    if not xs:
+        raise RenderError("rendered model has no geometry")
+    return min(xs), max(xs), min(ys), max(ys)
 
 
 def openscad_version() -> str:

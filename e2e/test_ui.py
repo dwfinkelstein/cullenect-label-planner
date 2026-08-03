@@ -19,6 +19,7 @@ Run against a running instance:
     E2E_BASE_URL=http://localhost:8080 pytest e2e -q
 """
 import os
+import re
 
 import pytest
 from playwright.sync_api import expect, sync_playwright
@@ -250,5 +251,25 @@ def test_tags_can_be_added_and_used_to_filter(browser):
         assert rows == 1, f"filtering by tag should leave 1 row, saw {rows}"
 
         page.request.delete(f"{BASE}/api/labels/{created[-1]['id']}")
+    finally:
+        page.close()
+
+
+def test_text_that_overflows_is_flagged_with_a_fix(browser):
+    """Without this the overflow is invisible until after the print."""
+    page = open_app(browser, 1500, 950)
+    try:
+        page.get_by_role("button", name="+ New label").click()
+        dialog = page.get_by_role("dialog", name="New label")
+        dialog.locator("#nl-t1").fill("M3 x 12 socket cap screws")
+        # Generous: on a cold cache a fit check renders the label several times while it
+        # verifies a size that actually fits, and CI always starts cold.
+        warning = dialog.get_by_text("This won't fit on the label.")
+        expect(warning).to_be_visible(timeout=90_000)
+
+        # The offered fix must actually resolve it, not just acknowledge the problem.
+        dialog.get_by_role("button", name=re.compile(r"^Use a .*U label$")).click()
+        expect(warning).not_to_be_visible(timeout=90_000)
+        dialog.get_by_role("button", name="Cancel").click()
     finally:
         page.close()

@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import bulk, icons, scad, settings as settings_store, store, threemf
+from . import bulk, fit, icons, scad, settings as settings_store, store, threemf
 from .scad import RenderError
 from .models import (FASTENER_DRIVERS, FASTENER_HEADS, FASTENER_SHAFTS,
                      FASTENER_THREADS, FONT_STYLES, FONTS, HARDWARE, Label)
@@ -131,6 +131,19 @@ def api_import_library(req: ImportRequest) -> list[Label]:
 
 
 # -------------------------------------------------------------------- renders
+
+@app.post("/api/labels/fit-check")
+def api_fit_check(label: Label) -> fit.FitReport:
+    """Does this label's content fit within its width?
+
+    The renderer never clips — text wider than the label just runs past the edge — so this
+    is the only thing standing between a typo and a wasted print.
+    """
+    try:
+        return fit.check(label)
+    except scad.RenderError as exc:
+        raise HTTPException(422, str(exc))
+
 
 @app.post("/api/render/preview")
 def api_preview(label: Label) -> FileResponse:
