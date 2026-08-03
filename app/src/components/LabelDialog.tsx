@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { TextBlockFields } from './Editor'
 import { FastenerPicker, HardwarePicker } from './IconPicker'
+import { TagInput } from './TagInput'
 import { Preview } from './Preview'
 import type { Label, Meta } from '../types'
 import { emptyLabel, labelTitle } from '../types'
@@ -13,10 +14,11 @@ const cap = 'block text-[11px] font-medium uppercase tracking-wide text-slate-40
  * single editing surface means one place to keep correct, and nothing that can be pushed
  * off-screen at an awkward viewport — which is how the editor became unreachable twice.
  */
-export function LabelDialog({ mode, initial, meta, onCancel, onSubmit, onDelete }: {
+export function LabelDialog({ mode, initial, meta, knownTags = [], onCancel, onSubmit, onDelete }: {
   mode: 'create' | 'edit'
   initial?: Label
   meta: Meta | null
+  knownTags?: string[]
   onCancel: () => void
   onSubmit: (label: Label) => Promise<void> | void
   onDelete?: (label: Label) => Promise<void> | void
@@ -149,6 +151,11 @@ export function LabelDialog({ mode, initial, meta, onCancel, onSubmit, onDelete 
                   <input className={field} value={label.text_color}
                          onChange={(e) => set('text_color', e.target.value)} />
                 </div>
+              </div>
+              <div>
+                <label className={cap} htmlFor="tag-input">Tags</label>
+                <TagInput value={label.tags} suggestions={knownTags}
+                          onChange={(t) => set('tags', t)} />
               </div>
               <label className="flex items-center gap-2 text-sm text-slate-300">
                 <input type="checkbox" checked={label.backward_compatible}

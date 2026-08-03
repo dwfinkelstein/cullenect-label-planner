@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
 import { FastenerPicker, HardwarePicker } from './IconPicker'
+import { TagInput } from './TagInput'
 import type { Label, Meta } from '../types'
 import { emptyLabel } from '../types'
 
@@ -18,8 +19,9 @@ M4 x 12 | 20 pcs
  * — a drawer inventory, a BOM, a spreadsheet column — and retyping it one dialog at a
  * time is the actual cost. The shared settings are chosen once and applied to every line.
  */
-export function BulkPasteDialog({ meta, onCancel, onDone }: {
+export function BulkPasteDialog({ meta, knownTags = [], onCancel, onDone }: {
   meta: Meta | null
+  knownTags?: string[]
   onCancel: () => void
   onDone: (created: Label[]) => void
 }) {
@@ -141,6 +143,11 @@ export function BulkPasteDialog({ meta, onCancel, onDone }: {
                   <option value="deboss">Deboss (recessed)</option>
                   <option value="flush">Flush (3MF colour swap)</option>
                 </select>
+              </div>
+              <div className="col-span-2">
+                <label className={cap} htmlFor="tag-input">Tags for the whole batch</label>
+                <TagInput value={template.tags} suggestions={knownTags}
+                          onChange={(t) => set('tags', t)} />
               </div>
               <div className="col-span-2">
                 <label className={cap} htmlFor="bulk-color">Text colour</label>
