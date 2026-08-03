@@ -25,9 +25,12 @@ export default function App() {
   const [toast, setToast] = useState('')
   const [newOpen, setNewOpen] = useState(false)
   const [bulkOpen, setBulkOpen] = useState(false)
+  const [activeTags, setActiveTags] = useState<string[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
   const settingsLoaded = useRef(false)
 
+  const knownTags = useMemo(() => [...new Set(labels.flatMap((l) => l.tags))].sort(),
+                             [labels])
   const selected = useMemo(() => labels.find((l) => l.id === selectedId) ?? null,
                            [labels, selectedId])
 
@@ -192,6 +195,8 @@ export default function App() {
             onDuplicate={(id) => { const l = labels.find((x) => x.id === id); if (l) addLabel(l) }}
             onDelete={removeLabel}
             onMove={move}
+            activeTags={activeTags}
+            onTagsChange={setActiveTags}
           />
         </div>
 
@@ -272,6 +277,7 @@ export default function App() {
         <LabelDialog
           mode="create"
           meta={meta}
+          knownTags={knownTags}
           onCancel={() => setNewOpen(false)}
           onSubmit={async (l) => {
             const created = await api.create(l)
@@ -287,6 +293,7 @@ export default function App() {
       {bulkOpen && (
         <BulkPasteDialog
           meta={meta}
+          knownTags={knownTags}
           onCancel={() => setBulkOpen(false)}
           onDone={(created) => {
             setLabels((prev) => [...prev, ...created])
@@ -307,6 +314,7 @@ export default function App() {
           mode="edit"
           initial={editing}
           meta={meta}
+          knownTags={knownTags}
           onCancel={() => setEditing(null)}
           onSubmit={saveEdited}
           onDelete={async (l) => { await removeLabel(l.id) }}
