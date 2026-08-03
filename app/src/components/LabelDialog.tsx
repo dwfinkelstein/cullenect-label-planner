@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { TextBlockFields } from './Editor'
 import { FastenerPicker, HardwarePicker } from './IconPicker'
+import { FitWarning } from './FitWarning'
 import { TagInput } from './TagInput'
 import { Preview } from './Preview'
 import type { Label, Meta } from '../types'
@@ -131,6 +132,7 @@ export function LabelDialog({ mode, initial, meta, knownTags = [], onCancel, onS
           <aside className="space-y-3">
             <h3 className="text-sm font-semibold text-slate-200">Preview</h3>
             <div className="h-56"><Preview label={label} /></div>
+            <FitWarning label={label} onApply={(patch) => setLabel((l) => ({ ...l, ...patch }))} />
             <div className="space-y-2">
               <div>
                 <label className={cap} htmlFor="nl-surface">Surface</label>

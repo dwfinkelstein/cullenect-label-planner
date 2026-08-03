@@ -306,3 +306,48 @@ def test_unreadable_settings_fall_back_to_defaults(tmp_path, monkeypatch):
     bad.write_text("{ not json")
     monkeypatch.setattr(settings_store, "SETTINGS_PATH", bad)
     assert settings_store.load().plate_x == 250
+
+
+# --- does the text fit? -----------------------------------------------------------------
+
+@needs_openscad
+def test_text_that_overflows_the_label_is_reported():
+    """The renderer never clips — without this the overflow is only visible after printing."""
+    r = client.post("/api/labels/fit-check", json={
+        "width_u": 1, "text1": {"text": "M3 x 12 socket cap screws"}}).json()
+    assert r["fits"] is False
+    assert r["content_width_mm"] > r["label_width_mm"]
+    assert r["overflow_mm"] > 1
+    assert r["suggested_width_u"] and r["suggested_width_u"] > 1, "must say what would fit"
+    assert "36mm" in r["message"], "the message should name the actual label width"
+
+
+@needs_openscad
+def test_text_that_fits_reports_no_overflow():
+    r = client.post("/api/labels/fit-check",
+                    json={"width_u": 1, "text1": {"text": "M3"}}).json()
+    assert r["fits"] is True and r["overflow_mm"] == 0
+
+
+@needs_openscad
+def test_the_suggested_width_actually_fits():
+    """A suggestion that doesn't solve the problem is worse than none."""
+    long_text = {"width_u": 1, "text1": {"text": "M4 x 25 button head"}}
+    first = client.post("/api/labels/fit-check", json=long_text).json()
+    assert not first["fits"]
+    fixed = {**long_text, "width_u": first["suggested_width_u"]}
+    assert client.post("/api/labels/fit-check", json=fixed).json()["fits"] is True
+
+
+@needs_openscad
+def test_the_suggested_font_sizes_actually_fit():
+    """Applied exactly as given — no scaling rule for the caller to get wrong."""
+    long_text = {"width_u": 1, "text1": {"text": "M4 x 25 button head"},
+                 "text2": {"text": "20mm", "align": "right"}}
+    first = client.post("/api/labels/fit-check", json=long_text).json()
+    if not first["suggested_text1_size"]:
+        pytest.skip("no readable size would fit this one")
+    shrunk = {**long_text,
+              "text1": {**long_text["text1"], "size": first["suggested_text1_size"]},
+              "text2": {**long_text["text2"], "size": first["suggested_text2_size"]}}
+    assert client.post("/api/labels/fit-check", json=shrunk).json()["fits"] is True

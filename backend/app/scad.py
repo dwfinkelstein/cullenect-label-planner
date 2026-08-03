@@ -154,6 +154,23 @@ def render_accessory(kind: str, width_u: float = 1, fmt: str = "3mf") -> Path:
     )
 
 
+def mesh_bounds(path: Path) -> tuple[float, float, float, float]:
+    """(min_x, max_x, min_y, max_y) of a rendered 3MF, in mm."""
+    import xml.etree.ElementTree as ET
+    import zipfile
+
+    core = "http://schemas.microsoft.com/3dmanufacturing/core/2015/02"
+    with zipfile.ZipFile(path) as zf:
+        root = ET.fromstring(zf.read("3D/3dmodel.model"))
+    xs, ys = [], []
+    for v in root.iter(f"{{{core}}}vertex"):
+        xs.append(float(v.get("x")))
+        ys.append(float(v.get("y")))
+    if not xs:
+        raise RenderError("rendered model has no geometry")
+    return min(xs), max(xs), min(ys), max(ys)
+
+
 def openscad_version() -> str:
     try:
         proc = subprocess.run([OPENSCAD, "--version"], capture_output=True, text=True, timeout=30)

@@ -1,4 +1,4 @@
-import type { Label, Meta, PlateEstimate, PlateSettings } from './types'
+import type { FitReport, Label, Meta, PlateEstimate, PlateSettings } from './types'
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error((await res.text().catch(() => '')) || `HTTP ${res.status}`)
@@ -51,6 +51,14 @@ export const api = {
     if (!res.ok) throw new Error((await res.text().catch(() => '')) || `HTTP ${res.status}`)
     return res.arrayBuffer()
   },
+
+  fitCheck: (label: Label, signal?: AbortSignal) =>
+    fetch('/api/labels/fit-check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(label),
+      signal,
+    }).then(json<FitReport>),
 
   plateEstimate: (body: object) =>
     fetch('/api/plate/estimate', {
