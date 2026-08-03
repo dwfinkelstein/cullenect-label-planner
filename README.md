@@ -8,7 +8,9 @@ whole packed build plate.
 > Not affiliated with the Cullenect Labels project — just a tool for it. All label and socket
 > geometry is that project's work, vendored here verbatim and unmodified.
 
-![The planner](docs/screenshot-main.png)
+![Pasting a list, picking an icon, previewing the plate](docs/demo.gif)
+
+*Paste a list, pick the icon by looking at it, preview the packed plate.*
 
 ## Why
 
@@ -51,17 +53,20 @@ Cullenect slots into bins of your own design.
 
 ## Run it
 
-```bash
-docker compose up --build     # http://localhost:8080
-```
-
-That's the whole thing — the image carries its own renderer and fonts. Your library lives in a
-named volume, so rebuilding never eats your labels.
-
-Or run the published image without cloning:
+One command, nothing to install but Docker:
 
 ```bash
 docker run -p 8080:80 -v cullenect-data:/data ghcr.io/dwfinkelstein/cullenect-label-planner:latest
+```
+
+Then open <http://localhost:8080>. The image carries its own renderer and fonts, so there's
+nothing else to set up. Your labels live in the `cullenect-data` volume and survive upgrades —
+and **Export JSON** in the app gives you a file you can keep or move to another machine.
+
+From a clone instead:
+
+```bash
+docker compose up --build     # http://localhost:8080
 ```
 
 ## How it works
