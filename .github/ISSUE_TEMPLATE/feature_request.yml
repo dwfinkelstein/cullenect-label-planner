@@ -1,0 +1,29 @@
+name: Feature request
+description: Something that would make the tool more useful
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do
+      description: >
+        The workflow, not the feature — what you're doing with labels and where the tool
+        gets in the way. That usually leads somewhere better than a proposed solution does.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you had in mind
+      description: Optional — if you already have a shape in mind, describe it.
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Does this belong here?
+      description: >
+        This tool drives the upstream Cullenect Labels geometry, which is vendored unmodified.
+        Changes to the LABEL SHAPE ITSELF — new icons, socket dimensions, latch geometry —
+        belong upstream at github.com/CullenJWebb/Cullenect-Labels, and land here when we
+        pick up their next release.
+      options:
+        - label: This is about the planner, not about the label geometry

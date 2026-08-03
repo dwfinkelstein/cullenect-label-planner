@@ -1,0 +1,10 @@
+blank_issues_enabled: true
+contact_links:
+  - name: The Cullenect Labels project itself
+    url: https://github.com/CullenJWebb/Cullenect-Labels
+    about: >
+      Label and socket geometry, the standard, and new icons live upstream. This planner
+      only drives that project's OpenSCAD source.
+  - name: Questions and ideas
+    url: https://github.com/dwfinkelstein/cullenect-label-planner/discussions
+    about: For anything that isn't clearly a bug or a specific feature request.

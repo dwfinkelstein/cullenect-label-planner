@@ -1,0 +1,38 @@
+name: Bug report
+description: Something doesn't work the way it should
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you got instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Renderer and version
+      description: >
+        Paste what /api/health reports — it includes the OpenSCAD build and whether coloured
+        3MF is available, which explains a surprising number of problems.
+      placeholder: '{"ok":true,"openscad":"OpenSCAD version 2026.01.02...","color_3mf":true}'
+  - type: input
+    id: how
+    attributes:
+      label: How are you running it
+      placeholder: docker compose up / the published image / from source
+  - type: textarea
+    id: label
+    attributes:
+      label: The label, if it's about one particular label
+      description: >
+        Export JSON and paste the entry, or just describe it. Text that doesn't fit its
+        width behaves differently from text that does, so the exact content matters.
+      render: json
+  - type: input
+    id: viewport
+    attributes:
+      label: Browser and window size
+      description: Layout problems are usually width-specific, so an approximate width helps.
+      placeholder: Firefox, roughly 1400px wide
