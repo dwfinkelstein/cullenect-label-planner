@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useRef } from 'react'
+import { useDialog } from '../useDialog'
 
 /**
  * What these labels are, and where they come from.
@@ -9,11 +10,8 @@ import { useEffect } from 'react'
  * people this tool will be how they first meet Cullenect labels.
  */
 export function AboutDialog({ onClose }: { onClose: () => void }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useDialog(dialogRef, onClose)
 
   const link = 'text-emerald-400 underline hover:text-emerald-300'
 
@@ -21,7 +19,7 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/80 p-4"
          role="dialog" aria-modal="true" aria-label="About Cullenect labels"
          onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="my-auto w-full max-w-2xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+      <div ref={dialogRef} className="my-auto w-full max-w-2xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
         <header className="flex items-center justify-between border-b border-slate-800 px-5 py-3">
           <h2 className="text-base font-semibold text-slate-100">What are Cullenect labels?</h2>
           <button className="text-slate-400 hover:text-slate-100" onClick={onClose} aria-label="Close">✕</button>

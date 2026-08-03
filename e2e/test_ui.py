@@ -273,3 +273,42 @@ def test_text_that_overflows_is_flagged_with_a_fix(browser):
         dialog.get_by_role("button", name="Cancel").click()
     finally:
         page.close()
+
+
+def test_a_dialog_traps_and_restores_focus(browser):
+    """Without a trap, tabbing walks out of the dialog into the page it's covering."""
+    page = open_app(browser, 1400, 950)
+    try:
+        opener = page.get_by_role("button", name="+ New label")
+        opener.click()
+        dialog = page.get_by_role("dialog", name="New label")
+        expect(dialog).to_be_visible()
+
+        # Focus starts inside.
+        assert page.evaluate(
+            "() => !!document.querySelector('[role=dialog]')?.contains(document.activeElement)"
+        ), "focus should move into the dialog when it opens"
+
+        # And stays inside, however far you tab.
+        for _ in range(40):
+            page.keyboard.press("Tab")
+        assert page.evaluate(
+            "() => !!document.querySelector('[role=dialog]')?.contains(document.activeElement)"
+        ), "tabbing escaped the dialog into the page behind it"
+
+        # Backwards too.
+        for _ in range(15):
+            page.keyboard.press("Shift+Tab")
+        assert page.evaluate(
+            "() => !!document.querySelector('[role=dialog]')?.contains(document.activeElement)"
+        ), "shift-tabbing escaped the dialog"
+
+        page.keyboard.press("Escape")
+        expect(dialog).not_to_be_visible()
+
+        # And focus comes back to what opened it, not the top of the document.
+        assert page.evaluate(
+            "() => document.activeElement?.textContent?.includes('New label')"
+        ), "focus should return to the control that opened the dialog"
+    finally:
+        page.close()
