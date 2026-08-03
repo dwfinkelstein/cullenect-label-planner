@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import bulk, icons, scad, store, threemf
+from . import bulk, icons, scad, settings as settings_store, store, threemf
 from .scad import RenderError
 from .models import (FASTENER_DRIVERS, FASTENER_HEADS, FASTENER_SHAFTS,
                      FASTENER_THREADS, FONT_STYLES, FONTS, HARDWARE, Label)
@@ -64,6 +64,16 @@ def api_delete_label(label_id: str) -> Response:
     if not store.delete(label_id):
         raise HTTPException(404, "label not found")
     return Response(status_code=204)
+
+
+@app.get("/api/settings")
+def api_get_settings() -> settings_store.Settings:
+    return settings_store.load()
+
+
+@app.put("/api/settings")
+def api_put_settings(settings: settings_store.Settings) -> settings_store.Settings:
+    return settings_store.save(settings)
 
 
 class BulkRequest(BaseModel):
