@@ -16,7 +16,7 @@ jobs:
           python-version: "3.12"
       - name: Install dependencies
         run: |
-          pip install -r backend/requirements.txt pytest
+          pip install -r backend/requirements.txt -r backend/requirements-dev.txt
       - name: Run the test suite
         working-directory: backend
         # The renderer-dependent tests skip automatically when OpenSCAD isn't present,
@@ -47,3 +47,64 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build (no push)
         run: docker build -t cullenect-label-planner:ci .
+
+  end-to-end:
+    name: End-to-end against the real image
+    runs-on: ubuntu-latest
+    # Several guarantees only hold in the built image and cannot be seen from a unit test:
+    # that the pinned renderer shipped, that it can emit coloured 3MF, that every font the
+    # UI offers actually resolves (a missing one is silently substituted), and that the
+    # data volume survives the container being replaced.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the image
+        run: docker build -t cullenect-label-planner:ci .
+
+      - name: Start it
+        run: |
+          docker volume create cullenect-e2e
+          docker run -d --name planner -p 8080:80 -v cullenect-e2e:/data cullenect-label-planner:ci
+          for i in $(seq 1 60); do
+            curl -fsS http://localhost:8080/api/health >/dev/null 2>&1 && break
+            sleep 2
+          done
+
+      - name: Smoke-test the running image
+        run: ./scripts/smoke-image.sh http://localhost:8080
+
+      - name: The library survives the container being replaced
+        run: |
+          created=$(curl -fsS -X POST http://localhost:8080/api/labels \
+            -H 'Content-Type: application/json' \
+            -d '{"name":"persistence check","text1":{"text":"KEEP"}}' \
+            | python3 -c 'import sys,json;print(json.load(sys.stdin)["id"])')
+          docker rm -f planner
+          docker run -d --name planner -p 8080:80 -v cullenect-e2e:/data cullenect-label-planner:ci
+          for i in $(seq 1 60); do
+            curl -fsS http://localhost:8080/api/health >/dev/null 2>&1 && break
+            sleep 2
+          done
+          code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:8080/api/labels")
+          curl -fsS http://localhost:8080/api/labels \
+            | python3 -c "import sys,json; ids=[l['id'] for l in json.load(sys.stdin)]; \
+                          sys.exit(0 if '$created' in ids else 'label did not survive the redeploy')"
+          echo "library survived (HTTP $code)"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install browser test tooling
+        run: |
+          pip install pytest playwright
+          playwright install --with-deps chromium
+
+      - name: Browser tests
+        env:
+          E2E_BASE_URL: http://localhost:8080
+        run: pytest e2e -q
+
+      - name: Container logs on failure
+        if: failure()
+        run: docker logs planner | tail -100
