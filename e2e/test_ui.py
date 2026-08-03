@@ -182,6 +182,10 @@ def test_the_socket_accessories_are_reachable_and_downloadable(browser):
         # the download actually produces a model
         r = page.request.get(f"{BASE}/api/accessories/socket-negative?width_u=1&fmt=3mf")
         assert r.status == 200 and len(r.body()) > 500
+    finally:
+        page.close()
+
+
 def test_tags_can_be_added_and_used_to_filter(browser):
     """Tags were stored and searched but there was no way to set one."""
     page = open_app(browser, 1500, 950)
