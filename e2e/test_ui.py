@@ -155,3 +155,32 @@ def test_the_plate_preview_reports_progress_and_completes(browser):
         assert not page.errors, f"console errors: {page.errors[:2]}"
     finally:
         page.close()
+
+
+def test_the_socket_accessories_are_reachable_and_downloadable(browser):
+    """The API had these all along; there was no way to get at them from the UI."""
+    page = open_app(browser, 1500, 950)
+    try:
+        page.get_by_role("button", name="Sockets").click()
+        dialog = page.get_by_role("dialog", name="Sockets and test fits")
+        expect(dialog).to_be_visible()
+
+        # every accessory the API offers is listed
+        offered = page.request.get(f"{BASE}/api/meta").json()["accessories"]
+        options = dialog.locator("#acc-kind option").count()
+        assert options >= len(offered) - 1, \
+            f"UI lists {options} parts, the API offers {len(offered)}"
+
+        # each one explains what it's for
+        assert len(dialog.inner_text()) > 200, "the parts need explaining, not just naming"
+
+        # and it renders rather than sitting blank
+        expect(dialog.locator("canvas")).to_be_visible()
+        page.wait_for_timeout(6000)
+        assert not page.errors, f"console errors: {page.errors[:2]}"
+
+        # the download actually produces a model
+        r = page.request.get(f"{BASE}/api/accessories/socket-negative?width_u=1&fmt=3mf")
+        assert r.status == 200 and len(r.body()) > 500
+    finally:
+        page.close()
