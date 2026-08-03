@@ -118,15 +118,31 @@ def test_estimate_agrees_with_what_the_plate_would_contain():
         assert 0 <= p["y"] and p["y"] + p["h"] <= est["plate_y"]
 
 
-def test_a_plate_that_cannot_fit_is_refused_not_truncated():
+def test_a_plate_that_cannot_fit_is_reported_as_not_fitting():
     r = client.post("/api/labels", json={"name": "many", "qty": 50,
                                          "text1": {"text": "X"}}).json()
     est = client.post("/api/plate/estimate",
                       json={"label_ids": [r["id"]], "plate_x": 40, "plate_y": 20,
                             "gap": 3}).json()
-    assert est["fits"] is False and est["message"]
+    assert est["fits"] is False and est["message"], \
+        "an impossible plate must say so before the slow render"
+
+
+@needs_openscad
+def test_building_an_impossible_plate_is_refused_not_truncated():
+    r = client.post("/api/labels", json={"name": "many", "qty": 50,
+                                         "text1": {"text": "X"}}).json()
     assert client.post("/api/plate", json={"label_ids": [r["id"]], "plate_x": 40,
                                            "plate_y": 20, "gap": 3}).status_code == 422
+
+
+def test_a_misconfigured_renderer_reports_itself_instead_of_crashing(monkeypatch):
+    """A missing binary used to surface as a 500 with a stack trace and no cause."""
+    monkeypatch.setattr(scad, "OPENSCAD", "/definitely/not/openscad")
+    with pytest.raises(scad.RenderError) as exc:
+        scad.render({"Select_Output": 0}, "3mf")
+    assert "/definitely/not/openscad" in str(exc.value)
+    assert "OPENSCAD_BIN" in str(exc.value), "the message should say how to fix it"
 
 
 def test_a_plate_with_nothing_selected_is_refused():

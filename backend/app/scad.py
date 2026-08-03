@@ -124,6 +124,13 @@ def render(defines: dict[str, object], fmt: str = "3mf") -> Path:
         )
     except subprocess.TimeoutExpired as exc:
         raise RenderError(f"OpenSCAD timed out after {RENDER_TIMEOUT}s") from exc
+    except OSError as exc:
+        # A missing or unexecutable renderer is a configuration problem, not a crash.
+        # Unwrapped it surfaced as a 500 with a stack trace and no hint of the cause.
+        raise RenderError(
+            f"cannot run the renderer at {OPENSCAD!r}: {exc}. Set OPENSCAD_BIN to an "
+            "OpenSCAD 2025 or newer — older builds cannot export coloured 3MF."
+        ) from exc
 
     if proc.returncode != 0 or not out.exists() or out.stat().st_size == 0:
         out.unlink(missing_ok=True)
