@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useRef, useState } from 'react'
+import { useDialog } from '../useDialog'
 import { download } from '../api'
 import { ModelViewer } from './ModelViewer'
 
@@ -41,17 +42,14 @@ const ACCESSORIES: { kind: string; name: string; blurb: string }[] = [
 
 export function AccessoriesDialog({ onClose }: { onClose: () => void }) {
   const [kind, setKind] = useState(ACCESSORIES[0].kind)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useDialog(dialogRef, onClose)
   const [width, setWidth] = useState(1)
   const [busy, setBusy] = useState('')
 
   const current = ACCESSORIES.find((a) => a.kind === kind)!
   const url = `/api/accessories/${kind}?width_u=${width}&fmt=3mf`
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
 
   const get = async (fmt: '3mf' | 'stl') => {
     setBusy(fmt)
@@ -63,7 +61,7 @@ export function AccessoriesDialog({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/80 p-4"
          role="dialog" aria-modal="true" aria-label="Sockets and test fits"
          onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="my-auto w-full max-w-3xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+      <div ref={dialogRef} className="my-auto w-full max-w-3xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
         <header className="flex items-center justify-between border-b border-slate-800 px-5 py-3">
           <div>
             <h2 className="text-base font-semibold text-slate-100">Sockets &amp; test fits</h2>

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
+import { useDialog } from '../useDialog'
 import { api } from '../api'
 import { FastenerPicker, HardwarePicker } from './IconPicker'
 import { TagInput } from './TagInput'
@@ -26,6 +27,8 @@ export function BulkPasteDialog({ meta, knownTags = [], onCancel, onDone }: {
   onDone: (created: Label[]) => void
 }) {
   const [text, setText] = useState('')
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useDialog(dialogRef, onCancel)
   const [template, setTemplate] = useState<Label>(() => emptyLabel())
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -46,11 +49,6 @@ export function BulkPasteDialog({ meta, knownTags = [], onCancel, onDone }: {
       })
   }, [text])
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onCancel])
 
   const submit = async () => {
     setBusy(true)
@@ -67,7 +65,7 @@ export function BulkPasteDialog({ meta, knownTags = [], onCancel, onDone }: {
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/80 p-4"
          role="dialog" aria-modal="true" aria-label="Paste a list"
          onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel() }}>
-      <div className="my-auto w-full max-w-4xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+      <div ref={dialogRef} className="my-auto w-full max-w-4xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
         <header className="flex items-center justify-between border-b border-slate-800 px-5 py-3">
           <h2 className="text-base font-semibold text-slate-100">Paste a list</h2>
           <button className="text-slate-400 hover:text-slate-100" onClick={onCancel} aria-label="Close">✕</button>

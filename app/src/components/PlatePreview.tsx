@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useDialog } from '../useDialog'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { ThreeMFLoader } from 'three/examples/jsm/loaders/3MFLoader.js'
@@ -21,6 +22,8 @@ export function PlatePreview({ estimate, onClose }: {
 }) {
   const mountRef = useRef<HTMLDivElement>(null)
   const [done, setDone] = useState(0)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useDialog(dialogRef, onClose)
   const [total, setTotal] = useState(0)
   const [current, setCurrent] = useState('')
   const [error, setError] = useState('')
@@ -164,7 +167,7 @@ export function PlatePreview({ estimate, onClose }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4"
          role="dialog" aria-modal="true" aria-label="Plate preview"
          onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="flex h-full max-h-[46rem] w-full max-w-5xl flex-col rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+      <div ref={dialogRef} className="flex h-full max-h-[46rem] w-full max-w-5xl flex-col rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 px-5 py-3">
           <div>
             <h2 className="text-base font-semibold text-slate-100">Build plate preview</h2>
