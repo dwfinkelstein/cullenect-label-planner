@@ -40,11 +40,22 @@ def browser():
 
 
 def open_app(browser, width, height):
+    """Open the app ready to use — past the first-run intro, as a returning user would be.
+
+    The intro is a modal, so leaving it up would block every other test on an overlay
+    rather than on anything the test is about. Its own behaviour is covered separately by
+    test_a_first_visit_explains_the_system_and_credits_upstream.
+    """
     page = browser.new_page(viewport={"width": width, "height": height})
     errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.goto(BASE, wait_until="networkidle", timeout=60_000)
-    page.wait_for_timeout(3000)
+    page.wait_for_timeout(1500)
+    intro = page.get_by_role("dialog", name="About Cullenect labels")
+    if intro.count():
+        intro.get_by_role("button", name="Got it").click()
+        page.wait_for_timeout(400)
+    page.wait_for_timeout(2000)
     page.errors = errors
     return page
 
