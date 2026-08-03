@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, download } from './api'
 import { AboutDialog } from './components/AboutDialog'
+import { AccessoriesDialog } from './components/AccessoriesDialog'
 import { BulkPasteDialog } from './components/BulkPasteDialog'
 import { LabelDialog } from './components/LabelDialog'
 import { LabelList } from './components/LabelList'
@@ -30,9 +31,13 @@ export default function App() {
   // reading preference, not data worth putting on the server.
   const [aboutOpen, setAboutOpen] = useState(
     () => localStorage.getItem('cullenect.seen-intro') !== '1')
+  const [accessoriesOpen, setAccessoriesOpen] = useState(false)
+  const [activeTags, setActiveTags] = useState<string[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
   const settingsLoaded = useRef(false)
 
+  const knownTags = useMemo(() => [...new Set(labels.flatMap((l) => l.tags))].sort(),
+                             [labels])
   const selected = useMemo(() => labels.find((l) => l.id === selectedId) ?? null,
                            [labels, selectedId])
 
@@ -174,6 +179,7 @@ export default function App() {
         <div className="ml-auto flex items-center gap-2">
           <button className={btnPrimary} onClick={() => setNewOpen(true)}>+ New label</button>
           <button className={btn} onClick={() => setBulkOpen(true)}>Paste a list</button>
+          <button className={btn} onClick={() => setAccessoriesOpen(true)}>Sockets</button>
           <button className={btn} onClick={() => download('/api/library/export')}>Export JSON</button>
           <button className={btn} onClick={() => fileRef.current?.click()}>Import JSON</button>
           <input ref={fileRef} type="file" accept="application/json" className="hidden"
@@ -200,6 +206,8 @@ export default function App() {
             onDuplicate={(id) => { const l = labels.find((x) => x.id === id); if (l) addLabel(l) }}
             onDelete={removeLabel}
             onMove={move}
+            activeTags={activeTags}
+            onTagsChange={setActiveTags}
           />
         </div>
 
@@ -286,6 +294,7 @@ export default function App() {
         <LabelDialog
           mode="create"
           meta={meta}
+          knownTags={knownTags}
           onCancel={() => setNewOpen(false)}
           onSubmit={async (l) => {
             const created = await api.create(l)
@@ -301,6 +310,7 @@ export default function App() {
       {bulkOpen && (
         <BulkPasteDialog
           meta={meta}
+          knownTags={knownTags}
           onCancel={() => setBulkOpen(false)}
           onDone={(created) => {
             setLabels((prev) => [...prev, ...created])
@@ -321,6 +331,7 @@ export default function App() {
           mode="edit"
           initial={editing}
           meta={meta}
+          knownTags={knownTags}
           onCancel={() => setEditing(null)}
           onSubmit={saveEdited}
           onDelete={async (l) => { await removeLabel(l.id) }}
@@ -337,6 +348,7 @@ export default function App() {
           setAboutOpen(false)
         }} />
       )}
+      {accessoriesOpen && <AccessoriesDialog onClose={() => setAccessoriesOpen(false)} />}
 
       {toast && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 rounded-lg bg-slate-800 px-4 py-2 text-sm text-slate-100 shadow-lg ring-1 ring-slate-700">

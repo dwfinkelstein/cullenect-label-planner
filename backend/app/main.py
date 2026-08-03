@@ -201,6 +201,21 @@ def api_icon_fastener(head: str = "socket", driver: str = "phillips",
         raise HTTPException(422, str(exc))
 
 
+@app.get("/api/labels/{label_id}/thumbnail.svg")
+def api_label_thumbnail(label_id: str) -> Response:
+    """A small drawing of the label itself, for the library list.
+
+    Derived from the label's own render, so it shows the real text and icons rather than a
+    browser approximation of them. `v=<updated_at>` should be passed by the caller so the
+    browser refetches when the label changes.
+    """
+    label = store.get(label_id)
+    if not label:
+        raise HTTPException(404, "label not found")
+    return Response(icons.label_thumbnail_svg(label), media_type="image/svg+xml",
+                    headers={"Cache-Control": "public, max-age=86400"})
+
+
 @app.get("/api/icons/hardware.svg")
 def api_icon_hardware(name: str) -> FileResponse:
     try:

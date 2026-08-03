@@ -15,6 +15,8 @@ interface Props {
   onDuplicate: (id: string) => void
   onDelete: (id: string) => void
   onMove: (id: string, dir: -1 | 1) => void
+  activeTags: string[]
+  onTagsChange: (tags: string[]) => void
 }
 
 export function LabelList(props: Props) {
@@ -22,10 +24,19 @@ export function LabelList(props: Props) {
   const [query, setQuery] = useState('')
 
   const q = query.trim().toLowerCase()
-  const visible = q
-    ? labels.filter((l) =>
-        [l.name, l.text1.text, l.text2.text, l.hardware, ...l.tags].join(' ').toLowerCase().includes(q))
-    : labels
+  const { activeTags } = props
+  const allTags = [...new Set(labels.flatMap((l) => l.tags))].sort()
+  const visible = labels
+    .filter((l) => !q ||
+      [l.name, l.text1.text, l.text2.text, l.hardware, ...l.tags].join(' ').toLowerCase().includes(q))
+    // Every active tag must be present — narrowing, not widening, which is what you want
+    // when you're hunting for one bin's labels.
+    .filter((l) => activeTags.every((t) => l.tags.includes(t)))
+
+  const toggleTag = (t: string) =>
+    props.onTagsChange(activeTags.includes(t)
+      ? activeTags.filter((x) => x !== t)
+      : [...activeTags, t])
 
   const allChecked = visible.length > 0 && visible.every((l) => checked.has(l.id))
 
@@ -44,6 +55,25 @@ export function LabelList(props: Props) {
         </label>
       </div>
 
+      {!!allTags.length && (
+        <div className="mb-2 flex flex-wrap items-center gap-1">
+          {allTags.map((t) => (
+            <button key={t} onClick={() => toggleTag(t)}
+                    className={`rounded-full border px-2 py-0.5 text-[11px] transition ${
+                      activeTags.includes(t)
+                        ? 'border-emerald-500 bg-emerald-500/15 text-emerald-200'
+                        : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+                    }`}>
+              {t}
+            </button>
+          ))}
+          {!!activeTags.length && (
+            <button onClick={() => props.onTagsChange([])}
+                    className="px-1 text-[11px] text-slate-500 hover:text-slate-300">clear</button>
+          )}
+        </div>
+      )}
+
       <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">
         {visible.map((l) => {
           const active = l.id === selectedId
@@ -60,8 +90,20 @@ export function LabelList(props: Props) {
                   onChange={() => props.onToggle(l.id)}
                   title="Include on the build plate"
                 />
-                <button className="min-w-0 flex-1 text-left" onClick={() => props.onSelect(l.id)}
+                <button className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                        onClick={() => props.onSelect(l.id)}
                         onDoubleClick={() => props.onOpen(l.id)} title="Click to preview · double-click to edit">
+                  {/* The drawing is the label's own geometry — the names alone ('tnut_1',
+                      'crimp_receptacle_open') are exactly what the icon pickers exist to
+                      avoid making you read. Lazy so a large library doesn't fetch every
+                      thumbnail at once; the v= key refetches when the label changes. */}
+                  <img
+                    src={`/api/labels/${l.id}/thumbnail.svg?v=${encodeURIComponent(l.updated_at ?? '')}`}
+                    alt=""
+                    loading="lazy"
+                    className="hidden h-6 w-16 shrink-0 rounded-sm object-contain sm:block"
+                  />
+                  <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     <span className="truncate text-sm text-slate-100">{labelTitle(l)}</span>
                     {dirtyId === l.id && <span className="text-[10px] text-amber-400" title="Unsaved changes">●</span>}
@@ -70,6 +112,12 @@ export function LabelList(props: Props) {
                     {l.width_u}U · {labelWidthMm(l).toFixed(0)}mm · {l.surface}
                     {l.fastener.show ? ` · ${l.fastener.head}/${l.fastener.driver}` : ''}
                     {l.hardware !== 'none' ? ` · ${l.hardware.replace(/_/g, ' ')}` : ''}
+                  </div>
+                  {!!l.tags.length && (
+                    <div className="truncate text-[10px] text-emerald-300/70">
+                      {l.tags.map((t) => `#${t}`).join(' ')}
+                    </div>
+                  )}
                   </div>
                 </button>
                 <input
@@ -99,7 +147,9 @@ export function LabelList(props: Props) {
         })}
         {visible.length === 0 && (
           <li className="rounded-lg border border-dashed border-slate-700 p-4 text-center text-sm text-slate-500">
-            {labels.length ? 'No labels match that search.' : 'No labels yet — add one to get started.'}
+            {labels.length
+              ? (activeTags.length ? 'No labels carry all of those tags.' : 'No labels match that search.')
+              : 'No labels yet — add one to get started.'}
           </li>
         )}
       </ul>
