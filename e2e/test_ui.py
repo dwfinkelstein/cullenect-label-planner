@@ -40,11 +40,22 @@ def browser():
 
 
 def open_app(browser, width, height):
+    """Open the app ready to use — past the first-run intro, as a returning user would be.
+
+    The intro is a modal, so leaving it up would block every other test on an overlay
+    rather than on anything the test is about. Its own behaviour is covered separately by
+    test_a_first_visit_explains_the_system_and_credits_upstream.
+    """
     page = browser.new_page(viewport={"width": width, "height": height})
     errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.goto(BASE, wait_until="networkidle", timeout=60_000)
-    page.wait_for_timeout(3000)
+    page.wait_for_timeout(1500)
+    intro = page.get_by_role("dialog", name="About Cullenect labels")
+    if intro.count():
+        intro.get_by_role("button", name="Got it").click()
+        page.wait_for_timeout(400)
+    page.wait_for_timeout(2000)
     page.errors = errors
     return page
 
@@ -153,6 +164,32 @@ def test_the_plate_preview_reports_progress_and_completes(browser):
         # ...and finishes.
         expect(dialog.get_by_text("rendered")).to_be_visible(timeout=180_000)
         assert not page.errors, f"console errors: {page.errors[:2]}"
+    finally:
+        page.close()
+
+
+def test_a_first_visit_explains_the_system_and_credits_upstream(browser):
+    """For some people this tool is how they first meet Cullenect labels."""
+    page = browser.new_page(viewport={"width": 1400, "height": 950})
+    page.goto(BASE, wait_until="networkidle", timeout=60_000)
+    try:
+        intro = page.get_by_role("dialog", name="About Cullenect labels")
+        expect(intro).to_be_visible(timeout=10_000)
+        text = intro.inner_text()
+        assert "click" in text.lower(), "it should say the label clicks into a slot"
+        assert "Cullen J Webb" in text, "upstream must be credited by name"
+        links = intro.locator("a[href*='CullenJWebb/Cullenect-Labels']").count()
+        assert links >= 1, "upstream must be linked, not just named"
+
+        intro.get_by_role("button", name="Got it").click()
+        expect(intro).not_to_be_visible()
+
+        # Dismissed for good, but still reachable on demand.
+        page.reload(wait_until="networkidle")
+        page.wait_for_timeout(2500)
+        expect(page.get_by_role("dialog", name="About Cullenect labels")).not_to_be_visible()
+        page.get_by_title("What are Cullenect labels?").click()
+        expect(page.get_by_role("dialog", name="About Cullenect labels")).to_be_visible()
     finally:
         page.close()
 

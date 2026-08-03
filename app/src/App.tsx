@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, download } from './api'
+import { AboutDialog } from './components/AboutDialog'
 import { AccessoriesDialog } from './components/AccessoriesDialog'
 import { BulkPasteDialog } from './components/BulkPasteDialog'
 import { LabelDialog } from './components/LabelDialog'
@@ -26,6 +27,10 @@ export default function App() {
   const [toast, setToast] = useState('')
   const [newOpen, setNewOpen] = useState(false)
   const [bulkOpen, setBulkOpen] = useState(false)
+  // Shown once, then only on request. Remembering the dismissal locally is enough — it's a
+  // reading preference, not data worth putting on the server.
+  const [aboutOpen, setAboutOpen] = useState(
+    () => localStorage.getItem('cullenect.seen-intro') !== '1')
   const [accessoriesOpen, setAccessoriesOpen] = useState(false)
   const [activeTags, setActiveTags] = useState<string[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
@@ -165,6 +170,9 @@ export default function App() {
         <h1 className="text-base font-semibold">
           Cullenect <span className="text-emerald-400">Label Planner</span>
         </h1>
+        <button className="rounded-full border border-slate-700 px-2 py-0.5 text-xs text-slate-400 hover:border-slate-500 hover:text-slate-200"
+                onClick={() => setAboutOpen(true)}
+                title="What are Cullenect labels?">?</button>
         <span className="hidden text-xs text-slate-500 sm:inline">
           Gridfinity labels · library of {labels.length} · exports colored 3MF
         </span>
@@ -262,7 +270,13 @@ export default function App() {
 
       <footer className="flex shrink-0 items-center gap-3 border-t border-slate-800 px-4 py-1.5 text-[11px] text-slate-500">
         <span>
-          Geometry: <a className="text-slate-400 underline" href="https://github.com/CullenJWebb/Cullenect-Labels">Cullenect Labels</a> (MIT, Cullen J Webb)
+          Label geometry:{' '}
+          <a className="text-slate-400 underline" target="_blank" rel="noreferrer"
+             href="https://github.com/CullenJWebb/Cullenect-Labels">Cullenect Labels</a>{' '}
+          by Cullen J Webb (MIT), used unmodified ·{' '}
+          <button className="underline hover:text-slate-300" onClick={() => setAboutOpen(true)}>
+            what is this?
+          </button>
         </span>
         {!!meta?.fonts_missing?.length && (
           <span className="text-amber-400" title="OpenSCAD will silently substitute another face">
@@ -328,6 +342,12 @@ export default function App() {
         <PlatePreview estimate={estimate} onClose={() => setPlatePreview(false)} />
       )}
 
+      {aboutOpen && (
+        <AboutDialog onClose={() => {
+          localStorage.setItem('cullenect.seen-intro', '1')
+          setAboutOpen(false)
+        }} />
+      )}
       {accessoriesOpen && <AccessoriesDialog onClose={() => setAccessoriesOpen(false)} />}
 
       {toast && (
