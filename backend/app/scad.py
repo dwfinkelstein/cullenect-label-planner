@@ -98,12 +98,25 @@ def _cache_key(defines: dict, fmt: str) -> str:
     return hashlib.sha256(blob.encode()).hexdigest()[:32]
 
 
-def render(defines: dict[str, object], fmt: str = "3mf") -> Path:
+def _is_valid_3mf(path: Path) -> bool:
+    import zipfile
+
+    try:
+        with zipfile.ZipFile(path) as zf:
+            zf.getinfo("3D/3dmodel.model")
+        return True
+    except (zipfile.BadZipFile, KeyError, OSError):
+        return False
+
+
+def render(defines: dict[str, object], fmt: str = "3mf", _retry_bad_3mf: bool = True) -> Path:
     """Render the .scad with the given -D overrides. Returns a cached file path."""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     out = CACHE_DIR / f"{_cache_key(defines, fmt)}.{fmt}"
     if out.exists() and out.stat().st_size > 0:
-        return out
+        if fmt != "3mf" or _is_valid_3mf(out):
+            return out
+        out.unlink(missing_ok=True)
 
     # Render to a UNIQUE temp path and rename into place. Writing straight to the cache
     # path let two concurrent renders of the same label collide over one file — which the
@@ -145,6 +158,12 @@ def render(defines: dict[str, object], fmt: str = "3mf") -> Path:
         raise RenderError("OpenSCAD failed: " + " | ".join(detail))
 
     os.replace(tmp_out, out)
+    if fmt == "3mf" and not _is_valid_3mf(out):
+        out.unlink(missing_ok=True)
+        if _retry_bad_3mf:
+            log.warning("discarding invalid 3MF %s; retrying render", out.name)
+            return render(defines, fmt, _retry_bad_3mf=False)
+        raise RenderError("OpenSCAD produced an invalid 3MF archive")
     log.info("rendered %s (%d bytes)", out.name, out.stat().st_size)
     return out
 

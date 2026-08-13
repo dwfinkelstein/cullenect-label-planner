@@ -314,3 +314,27 @@ def test_concurrent_renders_of_the_same_label_do_not_collide(tmp_path, monkeypat
     assert len({str(r) for r in results}) == 1, "all four should agree on the cache entry"
     assert results[0].stat().st_size > 0
     assert not list(tmp_path.glob("*.tmp*")), "no temp files should be left behind"
+
+
+def test_invalid_3mf_output_is_discarded_and_retried(tmp_path, monkeypatch):
+    monkeypatch.setattr(scad, "CACHE_DIR", tmp_path)
+    calls = 0
+
+    def fake_run(cmd, capture_output, text, timeout, env):
+        nonlocal calls
+        calls += 1
+        out = Path(cmd[cmd.index("-o") + 1])
+        out.parent.mkdir(parents=True, exist_ok=True)
+        if calls == 1:
+            out.write_text("not a zip file")
+        else:
+            with zipfile.ZipFile(out, "w") as zf:
+                zf.writestr("3D/3dmodel.model", "<model/>")
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+    monkeypatch.setattr(scad.subprocess, "run", fake_run)
+    rendered = scad.render({"Select_Output": 0}, "3mf")
+
+    assert calls == 2
+    with zipfile.ZipFile(rendered) as zf:
+        assert zf.getinfo("3D/3dmodel.model")
