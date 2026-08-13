@@ -120,6 +120,8 @@ def _render(defines: dict[str, object], fmt: str, _retry_bad_3mf: bool) -> Path:
         if fmt != "3mf" or _is_valid_3mf(out):
             return out
         out.unlink(missing_ok=True)
+        if not _retry_bad_3mf:
+            raise RenderError("cached 3MF archive is invalid")
 
     # Render to a UNIQUE temp path and rename into place. Writing straight to the cache
     # path let two concurrent renders of the same label collide over one file — which the
