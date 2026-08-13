@@ -16,6 +16,7 @@ import os
 import subprocess
 import tempfile
 import uuid
+import zipfile
 from pathlib import Path
 
 from .models import Label
@@ -99,8 +100,6 @@ def _cache_key(defines: dict, fmt: str) -> str:
 
 
 def _is_valid_3mf(path: Path) -> bool:
-    import zipfile
-
     try:
         with zipfile.ZipFile(path) as zf:
             zf.getinfo("3D/3dmodel.model")
@@ -109,7 +108,11 @@ def _is_valid_3mf(path: Path) -> bool:
         return False
 
 
-def render(defines: dict[str, object], fmt: str = "3mf", _retry_bad_3mf: bool = True) -> Path:
+def render(defines: dict[str, object], fmt: str = "3mf") -> Path:
+    return _render(defines, fmt, _retry_bad_3mf=True)
+
+
+def _render(defines: dict[str, object], fmt: str, _retry_bad_3mf: bool) -> Path:
     """Render the .scad with the given -D overrides. Returns a cached file path."""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     out = CACHE_DIR / f"{_cache_key(defines, fmt)}.{fmt}"
@@ -162,7 +165,7 @@ def render(defines: dict[str, object], fmt: str = "3mf", _retry_bad_3mf: bool = 
         out.unlink(missing_ok=True)
         if _retry_bad_3mf:
             log.warning("discarding invalid 3MF %s; retrying render", out.name)
-            return render(defines, fmt, _retry_bad_3mf=False)
+            return _render(defines, fmt, _retry_bad_3mf=False)
         raise RenderError("OpenSCAD produced an invalid 3MF archive")
     log.info("rendered %s (%d bytes)", out.name, out.stat().st_size)
     return out
