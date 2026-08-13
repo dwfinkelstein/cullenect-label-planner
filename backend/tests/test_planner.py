@@ -334,7 +334,9 @@ def test_invalid_3mf_output_is_discarded_and_retried(tmp_path, monkeypatch):
 
     monkeypatch.setattr(scad.subprocess, "run", fake_run)
     rendered = scad.render({"Select_Output": 0}, "3mf")
+    cached = scad.render({"Select_Output": 0}, "3mf")
 
     assert calls == 2
+    assert cached == rendered
     with zipfile.ZipFile(rendered) as zf:
         assert zf.getinfo("3D/3dmodel.model")
