@@ -27,7 +27,7 @@ FASTENER_HEADS = ["none", "socket", "countersunk", "roundh", "pan"]
 FASTENER_SHAFTS = ["none", "machine", "tapping"]
 FASTENER_THREADS = ["none", "full", "partial"]
 FASTENER_DRIVERS = [
-    "none", "slot", "phillips", "phillips_slot", "phillips_square", "torx",
+    "none", "slot", "phillips", "pozidriv", "phillips_slot", "phillips_square", "torx",
     "hex", "square", "triangle",
 ]
 HARDWARE = [

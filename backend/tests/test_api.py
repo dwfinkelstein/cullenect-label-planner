@@ -43,6 +43,7 @@ def test_meta_lists_every_option_the_ui_offers():
     for key in ("fonts", "font_styles", "fastener_heads", "fastener_shafts",
                 "fastener_threads", "fastener_drivers", "hardware", "accessories"):
         assert meta[key], f"{key} must not be empty"
+    assert "pozidriv" in meta["fastener_drivers"]
     assert "fonts_missing" in meta, "a substituted font must be reportable"
 
 

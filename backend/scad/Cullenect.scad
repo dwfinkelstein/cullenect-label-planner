@@ -47,7 +47,7 @@ Show_Fastener = false;
 Fastener_Head="socket"; // [none:None, socket:Socket, countersunk:Countersunk, roundh:Round, pan:Pan]
 Fastener_Shaft="machine"; // [none:None, machine:Machine, tapping:Tapping]
 Fastener_Threads="full"; // [none:None, full:Full, partial:Partial]
-Fastener_Driver="phillips"; // [none:None, slot:Slot, phillips:Phillips, phillips_slot:Phillips Slot, phillips_square:Phillips Square, torx:Torx/Star, hex:Hex, square:Robertson/Square, triangle:Triangle]
+Fastener_Driver="phillips"; // [none:None, slot:Slot, phillips:Phillips, pozidriv:Pozidriv (PZ), phillips_slot:Phillips Slot, phillips_square:Phillips Square, torx:Torx/Star, hex:Hex, square:Robertson/Square, triangle:Triangle]
 // Toggle flanged head
 Fastener_Head_Flange=false;
 // Toggle securty nub in center of driver
@@ -363,6 +363,16 @@ module cullenect_driver(
             rotate([0,0,90])slot();
         }
     }
+
+    // Pozidriv
+    module pozidriv(){
+        union(){
+            phillips();
+            for (angle = [45,135,225,315])
+                rotate([0,0,angle])
+                    cube([driverLength * 0.45, driverWidth * 0.65, layer], true);
+        }
+    }
     
     // Phillips Slot
     module phillips_slot(){
@@ -433,6 +443,7 @@ module cullenect_driver(
     if (driver == "blank")blank();
     if (driver == "slot")slot();
     if (driver == "phillips")phillips();
+    if (driver == "pozidriv")pozidriv();
     if (driver == "phillips_slot")phillips_slot();
     if (driver == "phillips_square")phillips_square();
     if (driver == "torx")torx();
