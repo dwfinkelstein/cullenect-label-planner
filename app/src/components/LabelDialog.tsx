@@ -22,27 +22,37 @@ export function LabelDialog({ mode, initial, meta, knownTags = [], onCancel, onS
   meta: Meta | null
   knownTags?: string[]
   onCancel: () => void
-  onSubmit: (label: Label) => Promise<void> | void
+  onSubmit: (label: Label, addAnother: boolean) => Promise<void> | void
   onDelete?: (label: Label) => Promise<void> | void
 }) {
   const [label, setLabel] = useState<Label>(() =>
     initial ? structuredClone(initial) : { ...emptyLabel(), name: '' })
+  const textRef = useRef<HTMLInputElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
   useDialog(dialogRef, onCancel)
   const [busy, setBusy] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [advanced, setAdvanced] = useState(false)
 
   const set = <K extends keyof Label>(k: K, v: Label[K]) => setLabel((l) => ({ ...l, [k]: v }))
   const dirty = !initial || JSON.stringify(label) !== JSON.stringify(initial)
 
 
-  const submit = async () => {
+  const saveDisabled = busy || (mode === 'edit' && !dirty)
+  const submit = async (addAnother: boolean) => {
+    if (saveDisabled) return
     setBusy(true)
+    setSaveError('')
     try {
       await onSubmit({
         ...label,
         name: label.name.trim() || label.text1.text.trim() || 'Untitled label',
-      })
+      }, addAnother)
+      if (addAnother) {
+        textRef.current?.focus()
+      }
+    } catch {
+      setSaveError('Could not save the label. Try again.')
     } finally { setBusy(false) }
   }
 
@@ -65,7 +75,7 @@ export function LabelDialog({ mode, initial, meta, knownTags = [], onCancel, onS
               <div className="grid gap-2 sm:grid-cols-2">
                 <div>
                   <label className={cap} htmlFor="nl-t1">Text</label>
-                  <input id="nl-t1" autoFocus className={field} placeholder="M3 x 12"
+                  <input id="nl-t1" ref={textRef} autoFocus className={field} placeholder="M3 x 12"
                          value={label.text1.text}
                          onChange={(e) => set('text1', { ...label.text1, text: e.target.value })} />
                 </div>
@@ -166,18 +176,25 @@ export function LabelDialog({ mode, initial, meta, knownTags = [], onCancel, onS
           </aside>
         </div>
 
-        <footer className="flex items-center justify-between gap-3 border-t border-slate-800 px-5 py-3">
+        {saveError && <p className="px-5 pb-2 text-sm text-red-300" role="alert">{saveError}</p>}
+        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 px-5 py-3">
           {mode === 'edit' && onDelete ? (
             <button className="rounded-md border border-red-900/60 px-3 py-1.5 text-sm text-red-400 hover:border-red-500 hover:text-red-300"
                     onClick={() => onDelete(label)}>Delete</button>
           ) : (
             <p className="text-xs text-slate-500">Everything here stays editable afterwards.</p>
           )}
-          <div className="flex gap-2">
+          <div className="ml-auto flex flex-wrap justify-end gap-2">
             <button className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 hover:border-slate-500"
                     onClick={onCancel}>Cancel</button>
+            {mode === 'create' && (
+              <button type="button" className="rounded-md border border-emerald-600 px-3 py-1.5 text-sm font-medium text-emerald-300 hover:bg-emerald-500/10 disabled:opacity-40"
+                      disabled={saveDisabled} onClick={() => submit(true)}>
+                Add label and new
+              </button>
+            )}
             <button className="rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-40"
-                    disabled={busy || (mode === 'edit' && !dirty)} onClick={submit}>
+                    disabled={saveDisabled} onClick={() => submit(false)}>
               {busy ? 'Saving…' : mode === 'create' ? 'Add label' : 'Save changes'}
             </button>
           </div>

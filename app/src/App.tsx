@@ -296,12 +296,12 @@ export default function App() {
           meta={meta}
           knownTags={knownTags}
           onCancel={() => setNewOpen(false)}
-          onSubmit={async (l) => {
+          onSubmit={async (l, addAnother) => {
             const created = await api.create(l)
             setLabels((prev) => [...prev, created])
             setChecked((prev) => new Set(prev).add(created.id))
             setSelectedId(created.id)
-            setNewOpen(false)
+            if (!addAnother) setNewOpen(false)
             flash(`Added "${labelTitle(created)}".`)
           }}
         />
