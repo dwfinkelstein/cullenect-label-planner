@@ -94,6 +94,11 @@ export function BulkPasteDialog({ meta, knownTags = [], onCancel, onDone }: {
               <h3 className="text-sm font-semibold text-slate-200">
                 2 · Settings applied to all {parsed.length || ''}
               </h3>
+              <label className="flex items-center gap-2 text-sm text-slate-300">
+                <input type="checkbox" checked={template.auto_fit}
+                       onChange={(e) => set('auto_fit', e.target.checked)} />
+                Auto-fit text and leave room for icons
+              </label>
               <FastenerPicker value={template.fastener} meta={meta}
                               onChange={(v) => set('fastener', v)} />
               <div className="border-t border-slate-800 pt-3">

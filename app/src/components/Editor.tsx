@@ -7,8 +7,8 @@ const field = 'w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-1.
 const labelCls = 'block text-[11px] font-medium uppercase tracking-wide text-slate-400'
 
 export function TextBlockFields({
-  value, onChange, meta, prefix,
-}: { value: TextBlock; onChange: (v: TextBlock) => void; meta: Meta | null; prefix: string }) {
+  value, onChange, meta, prefix, autoFit,
+}: { value: TextBlock; onChange: (v: TextBlock) => void; meta: Meta | null; prefix: string; autoFit: boolean }) {
   const set = <K extends keyof TextBlock>(k: K, v: TextBlock[K]) => onChange({ ...value, [k]: v })
   return (
     <div className="grid grid-cols-2 gap-2">
@@ -19,13 +19,13 @@ export function TextBlockFields({
       </div>
       <div>
         <label className={labelCls} htmlFor={`${prefix}-align`}>Align</label>
-        <select id={`${prefix}-align`} className={field} value={value.align}
+        <select id={`${prefix}-align`} disabled={autoFit} className={`${field} disabled:opacity-40`} value={value.align}
                 onChange={(e) => set('align', e.target.value as TextBlock['align'])}>
           <option value="left">left</option><option value="center">center</option><option value="right">right</option>
         </select>
       </div>
       <div>
-        <label className={labelCls} htmlFor={`${prefix}-size`}>Size (mm)</label>
+        <label className={labelCls} htmlFor={`${prefix}-size`}>{autoFit ? "Max size (mm)" : "Size (mm)"}</label>
         <input id={`${prefix}-size`} className={field} type="number" step="0.1" min="1" max="11" value={value.size}
                onChange={(e) => set('size', Number(e.target.value))} />
       </div>
@@ -43,12 +43,12 @@ export function TextBlockFields({
       </div>
       <div>
         <label className={labelCls} htmlFor={`${prefix}-dx`}>Nudge X</label>
-        <input id={`${prefix}-dx`} className={field} type="number" step="0.1" value={value.dx}
+        <input id={`${prefix}-dx`} disabled={autoFit} className={`${field} disabled:opacity-40`} type="number" step="0.1" value={value.dx}
                onChange={(e) => set('dx', Number(e.target.value))} />
       </div>
       <div>
         <label className={labelCls} htmlFor={`${prefix}-dy`}>Nudge Y</label>
-        <input id={`${prefix}-dy`} className={field} type="number" step="0.1" value={value.dy}
+        <input id={`${prefix}-dy`} disabled={autoFit} className={`${field} disabled:opacity-40`} type="number" step="0.1" value={value.dy}
                onChange={(e) => set('dy', Number(e.target.value))} />
       </div>
     </div>

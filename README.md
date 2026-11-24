@@ -33,6 +33,10 @@ A row per property: head, driver, shaft, threads, hardware.
 
 ![New label dialog](docs/screenshot-dialog.png)
 
+**Auto-fit text.** New labels and pasted batches use auto-fit by default. Both text blocks
+shrink as needed and leave room for the selected icon. Turn off auto-fit to set alignment and
+nudges by hand. Existing labels keep their layout until you enable auto-fit.
+
 **Paste a list.** One label per line — `|` or a tab adds second text, so a two-column
 spreadsheet paste works. Shared settings are chosen once and applied to the batch.
 

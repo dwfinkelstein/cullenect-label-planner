@@ -96,6 +96,11 @@ export function LabelDialog({ mode, initial, meta, knownTags = [], onCancel, onS
                 </div>
               </div>
 
+              <label className="flex items-center gap-2 text-sm text-slate-300">
+                <input type="checkbox" checked={label.auto_fit}
+                       onChange={(e) => set('auto_fit', e.target.checked)} />
+                Auto-fit text and leave room for icons
+              </label>
               <button type="button" onClick={() => setAdvanced((a) => !a)}
                       className="text-xs text-emerald-400 hover:text-emerald-300">
                 {advanced ? '− Hide' : '+ Show'} text options (font, alignment, size, nudge)
@@ -104,12 +109,12 @@ export function LabelDialog({ mode, initial, meta, knownTags = [], onCancel, onS
                 <div className="grid gap-3 rounded-lg border border-slate-800 bg-slate-950/40 p-3 sm:grid-cols-2">
                   <div>
                     <div className="mb-1 text-xs font-semibold text-slate-300">Text 1</div>
-                    <TextBlockFields value={label.text1} meta={meta} prefix="t1"
+                    <TextBlockFields value={label.text1} meta={meta} autoFit={label.auto_fit} prefix="t1"
                                      onChange={(v: Label['text1']) => set('text1', v)} />
                   </div>
                   <div>
                     <div className="mb-1 text-xs font-semibold text-slate-300">Text 2</div>
-                    <TextBlockFields value={label.text2} meta={meta} prefix="t2"
+                    <TextBlockFields value={label.text2} meta={meta} autoFit={label.auto_fit} prefix="t2"
                                      onChange={(v: Label['text2']) => set('text2', v)} />
                   </div>
                 </div>

@@ -314,3 +314,43 @@ def test_concurrent_renders_of_the_same_label_do_not_collide(tmp_path, monkeypat
     assert len({str(r) for r in results}) == 1, "all four should agree on the cache entry"
     assert results[0].stat().st_size > 0
     assert not list(tmp_path.glob("*.tmp*")), "no temp files should be left behind"
+
+
+@needs_openscad
+def test_auto_fit_keeps_both_text_blocks_clear_of_the_fastener():
+    import xml.etree.ElementTree as ET
+
+    label = Label(
+        auto_fit=True,
+        text1=TextBlock(text="M3 × 12 Socket"),
+        text2=TextBlock(text="20 pcs", size=6, align="right"),
+        fastener=Fastener(show=True, flange=True),
+    )
+    defines = scad.label_defines(label)
+
+    def relief_x(*, text=True, **overrides):
+        path = scad.render({**defines, **overrides})
+        with zipfile.ZipFile(path) as archive:
+            root = ET.fromstring(archive.read("3D/3dmodel.model"))
+        vertices = [v for v in root.findall(".//{*}vertex") if float(v.attrib["z"]) > 1.21]
+        assert vertices, "the label must contain raised geometry"
+        xs = [float(v.attrib["x"]) for v in vertices]
+        ys = [float(v.attrib["y"]) for v in vertices]
+        if text:
+            assert min(ys) >= 0.5 and max(ys) <= 10.5
+        return min(xs), max(xs)
+
+    first = relief_x(Text2="", Show_Fastener=False)
+    second = relief_x(Text1="", Show_Fastener=False)
+    icon = relief_x(text=False, Text1="", Text2="")
+    assert 0.5 <= first[0] < first[1] < second[0] < second[1] < icon[0]
+    assert defines["Text1_Font_Size"] < label.text1.size
+    assert scad.render_label(label, "stl").stat().st_size > 0
+
+
+def test_legacy_label_retains_manual_text_settings():
+    label = Label.model_validate({"text2": {"text": "20 pcs", "align": "right", "dx": -3}})
+    defines = scad.label_defines(label)
+    assert not label.auto_fit
+    assert defines["Text2_Align"] == "right"
+    assert defines["Text2_XY"] == [-3, 0]
