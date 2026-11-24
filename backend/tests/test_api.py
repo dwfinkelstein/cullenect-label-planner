@@ -351,3 +351,18 @@ def test_the_suggested_font_sizes_actually_fit():
               "text1": {**long_text["text1"], "size": first["suggested_text1_size"]},
               "text2": {**long_text["text2"], "size": first["suggested_text2_size"]}}
     assert client.post("/api/labels/fit-check", json=shrunk).json()["fits"] is True
+
+
+def test_apply_fit_offsets_updates_other_saved_labels_only():
+    source, target, *rest = client.get("/api/labels").json()
+    offsets = {"fit_offset_x": 0.2, "fit_offset_y": -0.1, "fit_offset_z": 0.3}
+    response = client.post("/api/labels/apply-fit-offsets",
+                           json={"offsets": offsets, "exclude_id": source["id"]})
+    assert response.status_code == 200
+    updated = client.get("/api/labels").json()
+    assert updated[0] == source
+    assert [label["id"] for label in updated] == [label["id"] for label in [source, target, *rest]]
+    for before, after in zip([target, *rest], updated[1:]):
+        assert after == {**before, **offsets, "updated_at": after["updated_at"]}
+    assert client.post("/api/labels/apply-fit-offsets",
+                       json={"offsets": {"fit_offset_z": -0.4}}).status_code == 422

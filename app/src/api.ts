@@ -1,4 +1,4 @@
-import type { FitReport, Label, Meta, PlateEstimate, PlateSettings } from './types'
+import type { FitOffsets, FitReport, Label, Meta, PlateEstimate, PlateSettings } from './types'
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error((await res.text().catch(() => '')) || `HTTP ${res.status}`)
@@ -29,6 +29,12 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(label),
     }).then(json<Label>),
+  applyFitOffsets: (offsets: FitOffsets, exclude_id: string) =>
+    fetch('/api/labels/apply-fit-offsets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ offsets, exclude_id }),
+    }).then(json<Label[]>),
   remove: async (id: string) => {
     const res = await fetch(`/api/labels/${id}`, { method: 'DELETE' })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)

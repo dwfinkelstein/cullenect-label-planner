@@ -21,7 +21,13 @@ export interface Fastener {
   security: boolean
 }
 
-export interface Label {
+export interface FitOffsets {
+  fit_offset_x: number
+  fit_offset_y: number
+  fit_offset_z: number
+}
+
+export interface Label extends FitOffsets {
   id: string
   name: string
   qty: number
@@ -98,6 +104,9 @@ export const emptyLabel = (): Label => ({
   surface: 'emboss',
   text_color: '#333333',
   backward_compatible: true,
+  fit_offset_x: 0,
+  fit_offset_y: 0,
+  fit_offset_z: 0,
   text1: { text: '', align: 'left', font: 'Open Sans', style: 'Regular', size: 5, dx: 0, dy: 0 },
   text2: { text: '', align: 'right', font: 'Open Sans', style: 'Regular', size: 6, dx: 0, dy: 0 },
   fastener: { show: false, head: 'socket', shaft: 'machine', threads: 'full', driver: 'phillips', flange: false, security: false },
@@ -107,4 +116,5 @@ export const emptyLabel = (): Label => ({
 export const labelTitle = (l: Label) => l.name || l.text1.text || l.text2.text || '(untitled)'
 
 /** Printed width in mm — matches label_size_mm() on the server. */
-export const labelWidthMm = (l: Label) => l.width_u * 42 - 6
+export const labelWidthMm = (l: Label) => l.width_u * 42 - 6 + (l.fit_offset_x ?? 0)
+export const labelHeightMm = (l: Label) => 11 + (l.fit_offset_y ?? 0)

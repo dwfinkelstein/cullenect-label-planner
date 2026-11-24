@@ -82,7 +82,13 @@ class Fastener(BaseModel):
     _v_driver = field_validator("driver")(one_of(FASTENER_DRIVERS, "driver"))
 
 
-class Label(BaseModel):
+class FitOffsets(BaseModel):
+    fit_offset_x: float = Field(0, ge=-1, le=1)
+    fit_offset_y: float = Field(0, ge=-1, le=1)
+    fit_offset_z: float = Field(0, ge=-0.3, le=1)
+
+
+class Label(FitOffsets):
     """One row of the tracked label library."""
 
     id: str = ""

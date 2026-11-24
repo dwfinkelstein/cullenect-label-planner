@@ -15,7 +15,7 @@ const ACCESSORIES: { kind: string; name: string; blurb: string }[] = [
     kind: 'socket-test-fit',
     name: 'Socket test fit',
     blurb: 'A short socket to print and click a label into. Print this FIRST — it tells you ' +
-           'whether your printer holds the tolerance before you commit to a batch of labels.',
+           'how the label fits before you print a batch.',
   },
   {
     kind: 'socket-negative',
@@ -96,9 +96,9 @@ export function AccessoriesDialog({ onClose }: { onClose: () => void }) {
             </div>
             <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-xs leading-relaxed text-slate-400">
               <strong className="text-slate-300">Getting the fit right.</strong> Print the test
-              fit and try a label in it. It should go in with a click and stay put. Too tight or
-              too loose is a tolerance difference in your printer, not a design error — the
-              upstream project documents the offsets to adjust.
+              fit or use a bin you already have. The label should click in and stay put. Adjust
+              its length or height under Socket fit in the label editor, then try one
+              adjusted label in the same socket.
             </div>
           </div>
 

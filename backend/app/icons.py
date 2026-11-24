@@ -136,11 +136,10 @@ def hardware_svg(name: str) -> Path:
 # shapes — so selecting them and flattening to 2D gives the real geometry, for any text,
 # with no second rendering path to keep in sync.
 
-BODY_Z = 1.2          # top face of the label body
 RELIEF = 0.2          # emboss/deboss depth
 
 
-def _relief_polygons(mesh_path: Path, surface: str) -> tuple[list, float, float]:
+def _relief_polygons(mesh_path: Path, surface: str, body_z: float) -> tuple[list, float, float]:
     """Flatten the relief band of a rendered label to 2D polygons."""
     import xml.etree.ElementTree as ET
     import zipfile
@@ -161,9 +160,9 @@ def _relief_polygons(mesh_path: Path, surface: str) -> tuple[list, float, float]
     # Flush shares the body's top face, so there's nothing to separate — fall back to the
     # body alone rather than drawing something misleading.
     if surface == "deboss":
-        lo, hi = BODY_Z - RELIEF - 0.01, BODY_Z - RELIEF + 0.01
+        lo, hi = body_z - RELIEF - 0.01, body_z - RELIEF + 0.01
     elif surface == "emboss":
-        lo, hi = BODY_Z + RELIEF - 0.01, BODY_Z + RELIEF + 0.01
+        lo, hi = body_z + RELIEF - 0.01, body_z + RELIEF + 0.01
     else:
         lo = hi = None
 
@@ -211,11 +210,11 @@ def _relief_polygons(mesh_path: Path, surface: str) -> tuple[list, float, float]
 
 def label_thumbnail_svg(label) -> str:
     """An SVG of the label — its body, with the real text and icons on top."""
-    from .scad import label_size_mm, render_label
+    from .scad import label_body_thickness_mm, label_size_mm, render_label
 
     width, height = label_size_mm(label)
     try:
-        polys, _, _ = _relief_polygons(render_label(label, "3mf"), label.surface)
+        polys, _, _ = _relief_polygons(render_label(label, "3mf"), label.surface, label_body_thickness_mm(label))
     except RenderError:
         polys = []
 

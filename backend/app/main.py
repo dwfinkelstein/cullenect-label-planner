@@ -18,7 +18,7 @@ from pydantic import BaseModel
 from . import bulk, fit, icons, scad, settings as settings_store, store, threemf
 from .scad import RenderError
 from .models import (FASTENER_DRIVERS, FASTENER_HEADS, FASTENER_SHAFTS,
-                     FASTENER_THREADS, FONT_STYLES, FONTS, HARDWARE, Label)
+                     FASTENER_THREADS, FONT_STYLES, FONTS, HARDWARE, FitOffsets, Label)
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("cullenect")
@@ -64,6 +64,16 @@ def api_delete_label(label_id: str) -> Response:
     if not store.delete(label_id):
         raise HTTPException(404, "label not found")
     return Response(status_code=204)
+
+
+class ApplyFitOffsetsRequest(BaseModel):
+    offsets: FitOffsets
+    exclude_id: str = ""
+
+
+@app.post("/api/labels/apply-fit-offsets")
+def api_apply_fit_offsets(req: ApplyFitOffsetsRequest) -> list[Label]:
+    return store.apply_fit_offsets(req.offsets, req.exclude_id)
 
 
 @app.get("/api/settings")

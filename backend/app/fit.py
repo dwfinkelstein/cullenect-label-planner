@@ -79,8 +79,8 @@ def check(label: Label) -> FitReport:
         return FitReport(fits=True, label_width_mm=width, content_width_mm=content,
                          overflow_mm=0.0)
 
-    # Next whole Gridfinity unit that would hold it: width = 42u - 6.
-    needed_u = (content + 6) / 42
+    # Next whole Gridfinity unit that would hold it: width = 42u - 6 + offset.
+    needed_u = (content + 6 - label.fit_offset_x) / 42
     suggested_u = round(needed_u + 0.049, 1)
 
     sizes = _sizes_that_fit(label, width)
@@ -88,7 +88,7 @@ def check(label: Label) -> FitReport:
     fixes = []
     if sizes:
         fixes.append(f"shrink the text to {sizes[0]:g}mm")
-    fixes.append(f"use a {suggested_u:g}U label ({suggested_u * 42 - 6:.0f}mm)")
+    fixes.append(f"use a {suggested_u:g}U label ({suggested_u * 42 - 6 + label.fit_offset_x:g}mm)")
     message = (f"The content is {content:.0f}mm wide but the label is {width:.0f}mm — "
                + " or ".join(fixes) + ".")
 

@@ -109,7 +109,7 @@ export function LabelList(props: Props) {
                     {dirtyId === l.id && <span className="text-[10px] text-amber-400" title="Unsaved changes">●</span>}
                   </div>
                   <div className="truncate text-[11px] text-slate-500">
-                    {l.width_u}U · {labelWidthMm(l).toFixed(0)}mm · {l.surface}
+                    {l.width_u}U · {Number(labelWidthMm(l).toFixed(2))}mm · {l.surface}
                     {l.fastener.show ? ` · ${l.fastener.head}/${l.fastener.driver}` : ''}
                     {l.hardware !== 'none' ? ` · ${l.hardware.replace(/_/g, ' ')}` : ''}
                   </div>
