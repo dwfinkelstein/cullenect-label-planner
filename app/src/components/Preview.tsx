@@ -4,7 +4,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { ThreeMFLoader } from 'three/examples/jsm/loaders/3MFLoader.js'
 import { api } from '../api'
 import type { Label } from '../types'
-import { labelWidthMm } from '../types'
+import { labelHeightMm, labelWidthMm } from '../types'
 
 /**
  * Live 3D preview. The server renders the real geometry (OpenSCAD → 3MF) and we
@@ -169,7 +169,7 @@ export function Preview({ label }: { label: Label }) {
     <div className="relative h-full w-full min-w-0 overflow-hidden rounded-xl border border-slate-700 bg-slate-900">
       <div ref={mountRef} className="h-full w-full cursor-grab active:cursor-grabbing" />
       <div className="pointer-events-none absolute left-3 top-3 rounded-md bg-slate-950/70 px-2 py-1 text-xs text-slate-300">
-        {labelWidthMm(label).toFixed(0)} × 11 × 1.2 mm · {label.width_u}U
+        {Number(labelWidthMm(label).toFixed(2))} × {Number(labelHeightMm(label).toFixed(2))} × {Number((1.2 + (label.fit_offset_z ?? 0)).toFixed(2))} mm · {label.width_u}U
       </div>
       {status === 'rendering' && (
         <div className="pointer-events-none absolute right-3 top-3 rounded-md bg-emerald-500/20 px-2 py-1 text-xs text-emerald-300">

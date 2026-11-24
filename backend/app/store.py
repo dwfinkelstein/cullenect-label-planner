@@ -13,7 +13,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .models import Label, Library
+from .models import FitOffsets, Label, Library
 
 DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
 LIBRARY_PATH = DATA_DIR / "labels.json"
@@ -101,6 +101,21 @@ def update(label_id: str, label: Label) -> Label | None:
                 _write(lib)
                 return label
     return None
+
+
+def apply_fit_offsets(offsets: FitOffsets, exclude_id: str = "") -> list[Label]:
+    with _lock:
+        lib = load()
+        values = offsets.model_dump()
+        updated = []
+        for index, label in enumerate(lib.labels):
+            if label.id != exclude_id and any(getattr(label, key) != value for key, value in values.items()):
+                label = label.model_copy(update={**values, "updated_at": _now()})
+                lib.labels[index] = label
+                updated.append(label)
+        if updated:
+            _write(lib)
+        return updated
 
 
 def delete(label_id: str) -> bool:

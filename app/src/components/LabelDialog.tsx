@@ -16,13 +16,15 @@ const cap = 'block text-[11px] font-medium uppercase tracking-wide text-slate-40
  * single editing surface means one place to keep correct, and nothing that can be pushed
  * off-screen at an awkward viewport — which is how the editor became unreachable twice.
  */
-export function LabelDialog({ mode, initial, meta, knownTags = [], onCancel, onSubmit, onDelete }: {
+export function LabelDialog({ mode, initial, meta, knownTags = [], onCancel, onSubmit, onDelete, otherLabelCount, onApplyFitOffsets }: {
   mode: 'create' | 'edit'
   initial?: Label
   meta: Meta | null
   knownTags?: string[]
   onCancel: () => void
   onSubmit: (label: Label) => Promise<void> | void
+  otherLabelCount: number
+  onApplyFitOffsets: (label: Label) => Promise<number>
   onDelete?: (label: Label) => Promise<void> | void
 }) {
   const [label, setLabel] = useState<Label>(() =>
@@ -30,11 +32,30 @@ export function LabelDialog({ mode, initial, meta, knownTags = [], onCancel, onS
   const dialogRef = useRef<HTMLDivElement>(null)
   useDialog(dialogRef, onCancel)
   const [busy, setBusy] = useState(false)
+  const [applyingFit, setApplyingFit] = useState(false)
+  const [fitMessage, setFitMessage] = useState('')
   const [advanced, setAdvanced] = useState(false)
 
   const set = <K extends keyof Label>(k: K, v: Label[K]) => setLabel((l) => ({ ...l, [k]: v }))
+  const fitOffsetsValid = [label.fit_offset_x ?? 0, label.fit_offset_y ?? 0]
+    .every((offset) => offset >= -1 && offset <= 1)
+    && (label.fit_offset_z ?? 0) >= -0.3 && (label.fit_offset_z ?? 0) <= 1
   const dirty = !initial || JSON.stringify(label) !== JSON.stringify(initial)
 
+
+  const applyFit = async () => {
+    if (!confirm(`Replace the X, Y, and Z offsets on ${otherLabelCount} other saved labels?`)) return
+    setApplyingFit(true)
+    setFitMessage('')
+    try {
+      const count = await onApplyFitOffsets(label)
+      setFitMessage(count ? `Updated ${count} saved label${count === 1 ? '' : 's'}.` : 'Saved labels already use these offsets.')
+    } catch {
+      setFitMessage('Could not apply the offsets. Try again.')
+    } finally {
+      setApplyingFit(false)
+    }
+  }
 
   const submit = async () => {
     setBusy(true)
@@ -157,11 +178,42 @@ export function LabelDialog({ mode, initial, meta, knownTags = [], onCancel, onS
                 <TagInput value={label.tags} suggestions={knownTags}
                           onChange={(t) => set('tags', t)} />
               </div>
-              <label className="flex items-center gap-2 text-sm text-slate-300">
-                <input type="checkbox" checked={label.backward_compatible}
-                       onChange={(e) => set('backward_compatible', e.target.checked)} />
-                V1-compatible latches
-              </label>
+              <details className="rounded-lg border border-slate-800 p-3">
+                <summary className="cursor-pointer text-sm font-medium text-slate-200">Socket fit (optional)</summary>
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs text-slate-400">
+                    Length and height adjust the label face. Thickness adjusts the body behind it.
+                    Add +0.1 mm on the side that has play, then test one label in your bin.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      ['fit_offset_x', 'Length (X) offset'],
+                      ['fit_offset_y', 'Height (Y) offset'],
+                      ['fit_offset_z', 'Thickness (Z) offset'],
+                    ] as const).map(([key, title]) => (
+                      <div key={key}>
+                        <label className={cap} htmlFor={key}>{title} (mm)</label>
+                        <input id={key} className={field} type="number" min={key === 'fit_offset_z' ? -0.3 : -1} max="1" step="0.1"
+                               value={label[key] ?? 0}
+                               onChange={(e) => set(key, Number(e.target.value))} />
+                      </div>
+                    ))}
+                  </div>
+                  {!fitOffsetsValid && (
+                    <p className="text-xs text-red-300" role="alert">Use −1 to +1 mm for X and Y, and −0.3 to +1 mm for Z.</p>
+                  )}
+                  <label className="flex items-center gap-2 text-sm text-slate-300">
+                    <input type="checkbox" checked={label.backward_compatible}
+                           onChange={(e) => set('backward_compatible', e.target.checked)} />
+                    V1-compatible latches
+                  </label>
+                  <button type="button" className="rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-200 disabled:opacity-40"
+                          disabled={busy || applyingFit || !fitOffsetsValid || !otherLabelCount} onClick={applyFit}>
+                    {applyingFit ? 'Applying…' : 'Apply offsets to all other labels'}
+                  </button>
+                  {fitMessage && <p className="text-xs text-slate-300" role="status">{fitMessage}</p>}
+                </div>
+              </details>
             </div>
           </aside>
         </div>
@@ -177,7 +229,7 @@ export function LabelDialog({ mode, initial, meta, knownTags = [], onCancel, onS
             <button className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 hover:border-slate-500"
                     onClick={onCancel}>Cancel</button>
             <button className="rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-40"
-                    disabled={busy || (mode === 'edit' && !dirty)} onClick={submit}>
+                    disabled={busy || applyingFit || !fitOffsetsValid || (mode === 'edit' && !dirty)} onClick={submit}>
               {busy ? 'Saving…' : mode === 'create' ? 'Add label' : 'Save changes'}
             </button>
           </div>

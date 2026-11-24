@@ -314,3 +314,27 @@ def test_concurrent_renders_of_the_same_label_do_not_collide(tmp_path, monkeypat
     assert len({str(r) for r in results}) == 1, "all four should agree on the cache entry"
     assert results[0].stat().st_size > 0
     assert not list(tmp_path.glob("*.tmp*")), "no temp files should be left behind"
+
+
+@needs_openscad
+@pytest.mark.parametrize("backward_compatible", [True, False])
+def test_socket_fit_offsets_match_the_rendered_label_footprint(backward_compatible):
+    label = Label(backward_compatible=backward_compatible, fit_offset_x=-0.2, fit_offset_y=0.3)
+    assert scad.label_size_mm(label) == pytest.approx((35.8, 11.3))
+    assert scad.mesh_bounds(scad.render_label(label)) == pytest.approx((0, 35.8, 0, 11.3), abs=0.01)
+
+
+@needs_openscad
+@pytest.mark.parametrize("backward_compatible", [True, False])
+@pytest.mark.parametrize("offset", [-0.3, 0.3])
+def test_thickness_offset_moves_body_and_relief(backward_compatible, offset):
+    import xml.etree.ElementTree as ET
+
+    label = Label(backward_compatible=backward_compatible, fit_offset_z=offset,
+                  text1=TextBlock(text="Fit", dx=1))
+    with zipfile.ZipFile(scad.render_label(label)) as archive:
+        root = ET.fromstring(archive.read("3D/3dmodel.model"))
+    heights = [float(v.attrib["z"]) for v in root.findall(".//{*}vertex")]
+    assert min(heights) == pytest.approx(0)
+    assert any(abs(z - (1.2 + offset)) < 0.001 for z in heights)
+    assert max(heights) == pytest.approx(1.4 + offset, abs=0.001)

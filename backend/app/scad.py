@@ -59,10 +59,11 @@ def _scad_value(v) -> str:
 def label_defines(label: Label) -> dict[str, object]:
     """Map a Label onto Cullenect.scad's customizer variables."""
     t1, t2, f = label.text1, label.text2, label.fastener
-    return {
+    defines = {
         "Select_Output": OUTPUT_LABEL,
         "label_width": label.width_u,
         "backward_compatible": label.backward_compatible,
+        "offset_xy": [label.fit_offset_x, label.fit_offset_y],
         "label_surface": SURFACE_CODE[label.surface],
         "Text_Color": label.text_color,
         "Text1": t1.text,
@@ -70,7 +71,8 @@ def label_defines(label: Label) -> dict[str, object]:
         "Text1_Font_Size": t1.size,
         "Text1_Font": t1.font,
         "Text1_Font_Style": t1.style,
-        "Text1_XY": [t1.dx, t1.dy],
+        # The vendor applies offset_xy.x twice to centered/right Text1 anchors.
+        "Text1_XY": [t1.dx - (label.fit_offset_x if t1.align != "left" else 0), t1.dy],
         "Text2": t2.text,
         "Text2_Align": t2.align,
         "Text2_Font_Size": t2.size,
@@ -87,10 +89,18 @@ def label_defines(label: Label) -> dict[str, object]:
         "Select_Hardware": label.hardware,
     }
 
+    if label.fit_offset_z:
+        defines["labelZ"] = label_body_thickness_mm(label)
+    return defines
+
 
 def label_size_mm(label: Label) -> tuple[float, float]:
     """Footprint of the rendered label — used to lay out a plate."""
-    return (label.width_u * 42 - 6, 11.0)
+    return (label.width_u * 42 - 6 + label.fit_offset_x, 11.0 + label.fit_offset_y)
+
+
+def label_body_thickness_mm(label: Label) -> float:
+    return 1.2 + label.fit_offset_z
 
 
 def _cache_key(defines: dict, fmt: str) -> str:
@@ -121,14 +131,22 @@ def render(defines: dict[str, object], fmt: str = "3mf") -> Path:
         ]
     for k, v in defines.items():
         cmd += ["-D", f"{k}={_scad_value(v)}"]
-    cmd.append(str(SCAD_FILE))
-
-    tmp_home = tempfile.mkdtemp(prefix="oscad-")
     try:
-        proc = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=RENDER_TIMEOUT,
-            env={**os.environ, "HOME": tmp_home},
-        )
+        with tempfile.TemporaryDirectory(prefix="oscad-") as temp:
+            source = SCAD_FILE
+            if "labelZ" in defines and defines.get("backward_compatible") and defines.get("label_width") == 1:
+                # The vendored V1 cap is fixed at 0.4 mm. Adjust only that slab so the
+                # latch channels and text relief retain their original geometry.
+                slab = "RoundedCube([labelX_v1, labelY_v1, 0.4], 0.5);"
+                geometry = SCAD_FILE.read_text()
+                if geometry.count(slab) != 1:
+                    raise RenderError("Cannot locate the V1 label cap for thickness adjustment.")
+                source = Path(temp) / SCAD_FILE.name
+                source.write_text(geometry.replace(slab, slab.replace("0.4", "labelZ - 0.8")))
+            proc = subprocess.run(
+                [*cmd, str(source)], capture_output=True, text=True, timeout=RENDER_TIMEOUT,
+                env={**os.environ, "HOME": temp},
+            )
     except subprocess.TimeoutExpired as exc:
         raise RenderError(f"OpenSCAD timed out after {RENDER_TIMEOUT}s") from exc
     except OSError as exc:

@@ -83,6 +83,14 @@ export default function App() {
     if (found) { setSelectedId(id); setEditing(found) }
   }
 
+  const applyFitOffsets = async (draft: Label) => {
+    const { fit_offset_x, fit_offset_y, fit_offset_z } = draft
+    const updated = await api.applyFitOffsets({ fit_offset_x, fit_offset_y, fit_offset_z }, draft.id)
+    const byId = new Map(updated.map((label) => [label.id, label]))
+    setLabels((prev) => prev.map((label) => byId.get(label.id) ?? label))
+    return updated.length
+  }
+
   const saveEdited = async (updatedDraft: Label) => {
     const id = updatedDraft.id
     const updated = await api.update(id, updatedDraft)
@@ -293,6 +301,8 @@ export default function App() {
       {newOpen && (
         <LabelDialog
           mode="create"
+          otherLabelCount={labels.length}
+          onApplyFitOffsets={applyFitOffsets}
           meta={meta}
           knownTags={knownTags}
           onCancel={() => setNewOpen(false)}
@@ -330,6 +340,8 @@ export default function App() {
         <LabelDialog
           mode="edit"
           initial={editing}
+          otherLabelCount={labels.filter((label) => label.id !== editing.id).length}
+          onApplyFitOffsets={applyFitOffsets}
           meta={meta}
           knownTags={knownTags}
           onCancel={() => setEditing(null)}
