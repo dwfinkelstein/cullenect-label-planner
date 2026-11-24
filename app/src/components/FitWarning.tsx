@@ -39,7 +39,7 @@ export function FitWarning({ label, onApply }: {
   return (
     <div className="rounded-lg border border-amber-700/60 bg-amber-500/10 p-3 text-xs text-amber-200"
          role="status">
-      <div className="font-medium">This won't fit on the label.</div>
+      <div className="font-medium">{label.auto_fit ? "Check the text size" : "This won't fit on the label."}</div>
       <p className="mt-1 text-amber-200/80">{report.message}</p>
       <div className="mt-2 flex flex-wrap gap-2">
         {report.suggested_text1_size && (

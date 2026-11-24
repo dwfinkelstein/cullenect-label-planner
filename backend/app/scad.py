@@ -53,13 +53,13 @@ def _scad_value(v) -> str:
     if isinstance(v, (list, tuple)):
         return "[" + ",".join(_scad_value(x) for x in v) + "]"
     # json.dumps gives us correct quoting/escaping for OpenSCAD string literals
-    return json.dumps(str(v))
+    return json.dumps(str(v), ensure_ascii=False)
 
 
 def label_defines(label: Label) -> dict[str, object]:
     """Map a Label onto Cullenect.scad's customizer variables."""
     t1, t2, f = label.text1, label.text2, label.fastener
-    return {
+    defines = {
         "Select_Output": OUTPUT_LABEL,
         "label_width": label.width_u,
         "backward_compatible": label.backward_compatible,
@@ -86,6 +86,17 @@ def label_defines(label: Label) -> dict[str, object]:
         "Fastener_Driver_Security": f.security,
         "Select_Hardware": label.hardware,
     }
+
+    if label.auto_fit:
+        from .layout import fitted_text
+
+        for slot, text in fitted_text(label).items():
+            defines.update({
+                f"{slot}_Font_Size": text.size,
+                f"{slot}_Align": "left",
+                f"{slot}_XY": [text.dx, text.dy],
+            })
+    return defines
 
 
 def label_size_mm(label: Label) -> tuple[float, float]:

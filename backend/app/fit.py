@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
+from .layout import fitted_text
 from .models import Label
 from .scad import label_size_mm, mesh_bounds, render_label
 
@@ -74,6 +75,14 @@ def check(label: Label) -> FitReport:
     min_x, max_x, _, _ = mesh_bounds(render_label(label, "3mf"))
     content = max(max_x, width) - min(min_x, 0.0)
     overflow = content - width
+
+    if label.auto_fit and any(block.size < MIN_READABLE_MM for block in fitted_text(label).values()):
+        return FitReport(
+            fits=False, label_width_mm=width, content_width_mm=content,
+            overflow_mm=max(0.0, round(overflow, 2)),
+            message=f"Auto-fit reduced text below {MIN_READABLE_MM:g} mm. "
+                    "Use a wider label or shorten the text for easier printing.",
+        )
 
     if overflow <= TOLERANCE_MM:
         return FitReport(fits=True, label_width_mm=width, content_width_mm=content,

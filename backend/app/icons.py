@@ -62,9 +62,13 @@ def _render_svg(source: str, key: str) -> Path:
     if out.exists() and out.stat().st_size > 0:
         return out
 
-    # Rendered into a private temp dir and copied in at the end, so concurrent requests
-    # for the same icon can't collide over the cache file (see scad.render).
-    tmpdir = Path(tempfile.mkdtemp(prefix="icon-"))
+    # Publish atomically: layout and the icon picker can read the same SVG concurrently.
+    with tempfile.TemporaryDirectory(prefix="icon-", dir=ICON_CACHE) as temp:
+        _export_icon(source, Path(temp), out)
+    return out
+
+
+def _export_icon(source: str, tmpdir: Path, out: Path) -> None:
     scad_path = tmpdir / "icon.scad"
     scad_path.write_text(source)
     tmp_out = tmpdir / "icon.svg"
@@ -79,8 +83,7 @@ def _render_svg(source: str, key: str) -> Path:
     if proc.returncode != 0 or not tmp_out.exists() or tmp_out.stat().st_size == 0:
         detail = (proc.stderr or proc.stdout or "").strip().splitlines()[-4:]
         raise RenderError("icon render failed: " + " | ".join(detail))
-    out.write_bytes(tmp_out.read_bytes())
-    return out
+    tmp_out.replace(out)
 
 
 def _key(prefix: str, parts: dict) -> str:

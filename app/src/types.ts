@@ -30,6 +30,7 @@ export interface Label {
   surface: Surface
   text_color: string
   backward_compatible: boolean
+  auto_fit: boolean
   text1: TextBlock
   text2: TextBlock
   fastener: Fastener
@@ -98,6 +99,7 @@ export const emptyLabel = (): Label => ({
   surface: 'emboss',
   text_color: '#333333',
   backward_compatible: true,
+  auto_fit: true,
   text1: { text: '', align: 'left', font: 'Open Sans', style: 'Regular', size: 5, dx: 0, dy: 0 },
   text2: { text: '', align: 'right', font: 'Open Sans', style: 'Regular', size: 6, dx: 0, dy: 0 },
   fastener: { show: false, head: 'socket', shaft: 'machine', threads: 'full', driver: 'phillips', flange: false, security: false },

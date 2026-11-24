@@ -95,6 +95,7 @@ class Label(BaseModel):
     text_color: str = "#333333"
     backward_compatible: bool = True
 
+    auto_fit: bool = False  # Legacy labels keep their saved manual layout.
     text1: TextBlock = TextBlock()
     text2: TextBlock = TextBlock(text="", align="right", size=6)
     fastener: Fastener = Fastener()
