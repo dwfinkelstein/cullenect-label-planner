@@ -11,6 +11,55 @@ import { emptyLabel, labelTitle } from '../types'
 const field = 'w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none'
 const cap = 'block text-[11px] font-medium uppercase tracking-wide text-slate-400'
 
+const metricLengths = {
+  M2: '4 5 6 8 10 12 16 20',
+  'M2.5': '4 5 6 8 10 12 16 20 25',
+  M3: '4 5 6 8 10 12 14 16 18 20 25 30 35 40',
+  'M3.5': '6 8 10 12 16 20 25 30',
+  M4: '6 8 10 12 14 16 18 20 25 30 35 40 45 50',
+  M5: '8 10 12 14 16 18 20 25 30 35 40 45 50 55 60',
+}
+const saeLengths = {
+  '1/4': '1/4 3/8 1/2 5/8 3/4 7/8 1 1-1/4 1-1/2 1-3/4 2 2-1/4 2-1/2',
+  '5/16': '3/8 1/2 5/8 3/4 7/8 1 1-1/4 1-1/2 1-3/4 2 2-1/4 2-1/2',
+  '3/8': '1/2 5/8 3/4 7/8 1 1-1/4 1-1/2 1-3/4 2 2-1/4 2-1/2',
+  '7/16': '3/4 1 1-1/4 1-1/2 1-3/4 2 2-1/2',
+  '1/2': '3/4 1 1-1/4 1-1/2 1-3/4 2 2-1/4 2-1/2',
+}
+const sizeOptions = Object.entries({ ...metricLengths, ...saeLengths }).map(([size, lengths]) => ({
+  size,
+  lengths: lengths.split(' '),
+  unit: size.startsWith('M') ? 'mm' : '″',
+  prefix: new RegExp(`^\\s*${size.replace('.', '\\.')}(?=\\s|[x×"″-]|$)`, 'i'),
+}))
+
+// Handle compact labels and retain optional thread pitch, inch marks, and descriptions.
+const lengthPattern = /^\s*[x×]\s*((?:\d+[- ]+)?\d+\/\d+|\d+(?:\.\d+)?)(?:\s*(?:mm|["″]))?(?=\s|$)/i
+
+function parseFastenerText(text: string) {
+  const preset = sizeOptions.find(({ prefix }) => prefix.test(text))
+  const diameter = preset ? text.match(preset.prefix)?.[0] ?? '' : ''
+  const remainder = text.slice(diameter.length)
+  const thread = remainder.match(/^["″]?(?:-\d+(?:\.\d+)?)?/)?.[0] ?? ''
+  const prefix = diameter + thread
+  const suffix = text.slice(prefix.length)
+  const length = suffix.match(lengthPattern)
+  return { preset, prefix, suffix, length }
+}
+
+function lengthInches(length: string) {
+  const parts = length.replace('-', ' ').split(' ')
+  return parts.reduce((total, part) => {
+    const [numerator, denominator] = part.split('/').map(Number)
+    return total + (denominator ? numerator / denominator : numerator)
+  }, 0)
+}
+
+function matchingLength(preset: (typeof sizeOptions)[number] | undefined, length: string) {
+  const numeric = preset?.unit === '″' ? lengthInches : Number
+  return preset?.lengths.find((option) => numeric(option) === numeric(length)) ?? ''
+}
+
 /**
  * One dialog for creating AND editing a label. It replaced the permanent side panel: a
  * single editing surface means one place to keep correct, and nothing that can be pushed
@@ -33,6 +82,30 @@ export function LabelDialog({ mode, initial, meta, knownTags = [], onCancel, onS
   const [advanced, setAdvanced] = useState(false)
 
   const set = <K extends keyof Label>(k: K, v: Label[K]) => setLabel((l) => ({ ...l, [k]: v }))
+  const dimensions = parseFastenerText(label.text1.text)
+  const sizePreset = dimensions.preset
+  const lengthPreset = dimensions.length ? matchingLength(sizePreset, dimensions.length[1]) : ''
+  const setSizePreset = (size: string) => {
+    setLabel((current) => {
+      const { text } = current.text1
+      const { preset, prefix, suffix, length } = parseFastenerText(text)
+      const nextPreset = sizeOptions.find((option) => option.size === size)
+      const compatible = !length || (preset?.unit === nextPreset?.unit
+        && (!matchingLength(preset, length[1]) || matchingLength(nextPreset, length[1])))
+      const next = preset
+        ? prefix.replace(preset.prefix, size) + (compatible ? suffix : suffix.slice(length?.[0].length ?? 0))
+        : [size, text.trimStart()].filter(Boolean).join(' ')
+      return { ...current, text1: { ...current.text1, text: next } }
+    })
+  }
+  const setLengthPreset = (length: string) => {
+    setLabel((current) => {
+      const { preset, prefix, suffix, length: previous } = parseFastenerText(current.text1.text)
+      if (!preset) return current
+      const text = `${prefix} × ${length}${preset.unit === '″' ? '″' : ''}${suffix.slice(previous?.[0].length ?? 0)}`
+      return { ...current, text1: { ...current.text1, text } }
+    })
+  }
   const dirty = !initial || JSON.stringify(label) !== JSON.stringify(initial)
 
 
@@ -62,6 +135,34 @@ export function LabelDialog({ mode, initial, meta, knownTags = [], onCancel, onS
           <div className="space-y-5">
             <section className="space-y-2">
               <h3 className="text-sm font-semibold text-slate-200">1 · What does it say?</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className={cap} htmlFor="nl-size-preset">Fastener size (optional)</label>
+                  <select id="nl-size-preset" className={field} value={sizePreset?.size ?? ''}
+                          onChange={(e) => setSizePreset(e.target.value)}>
+                    <option value="" disabled>Choose a size</option>
+                    <optgroup label="Metric">
+                      {Object.keys(metricLengths).map((size) => <option key={size}>{size}</option>)}
+                    </optgroup>
+                    <optgroup label="SAE (inches)">
+                      {Object.keys(saeLengths).map((size) => <option key={size}>{size}</option>)}
+                    </optgroup>
+                  </select>
+                </div>
+                <div>
+                  <label className={cap} htmlFor="nl-length-preset">Length (optional)</label>
+                  <select id="nl-length-preset" className={`${field} disabled:opacity-50`}
+                          value={lengthPreset} disabled={!sizePreset}
+                          onChange={(e) => setLengthPreset(e.target.value)}>
+                    <option value="" disabled>{sizePreset ? 'Choose a length' : 'Choose a size first'}</option>
+                    {sizePreset?.lengths.map((length) => (
+                      <option key={length} value={length}>
+                        {length}{sizePreset.unit === 'mm' ? ' mm' : '″'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
               <div className="grid gap-2 sm:grid-cols-2">
                 <div>
                   <label className={cap} htmlFor="nl-t1">Text</label>
